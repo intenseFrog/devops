@@ -7,14 +7,10 @@ CREATE=$(dirname $BASH_SOURCE)/create_vms_2d.sh
 BASE_IMAGES=$(dirname $BASH_SOURCE)/base_images
 CHIWEN_LICENSE=$(dirname $BASH_SOURCE)/chiwen-license
 
+SSHPASS="sshpass -p sihua!@#890"
+
 # license file
 LICENSE=$(dirname $BASH_SOURCE)/license.key
-
-# master of devops
-DEVOPS_MASTER=devops160
-
-# master of nightly test 
-NIGHT_MASTER=devops170
 
 # Create, List or Remove
 action=
@@ -124,23 +120,27 @@ do_list() {
     virsh list --all
 }
 
-
-
-create_license() {
-    # mac=$(cat /sys/class/net/$(ip route show default|awk '/default/ {print $5}')/address)
-    # hw_sig=$(echo -n "${mac}HJLXZZ" | openssl dgst -md5 -binary | openssl enc -base64)
-    $CHIWEN_LICENSE \
-       -id dummy \
-       -hw GVBM6eeV93mcXsxg9HwA9A== \
-       -ia $(date -u +“%Y-%m-%d”) \
-       -ib minhao.jin \
-       -ea 2049-12-31 \
-       -o devops@160 > $LICENSE
-}
-
 do_license() {
-    create_license
-    cat $LICENSE | ssh root@10.10.1.160 'cat >> $(docker volume inspect chiwen.config -f {{.Mountpoint}})/license.key'
+    node=$1
+    if [ -z "$node" ]; then
+        exit 1
+    fi
+
+    $SSHPASS scp $CHIWEN_LICENSE $node:/root/
+
+    $SSHPASS ssh $node << 'EOF'
+        cw_path=/var/lib/docker/volumes/chiwen.config/_data
+        test -d $chiwen_config_path || mkdir -p $cw_path
+        mac=$(cat /sys/class/net/$(ip route show default|awk '/default/ {print $5}')/address)
+        hw_sig=$(echo -n "${mac}HJLXZZ" | openssl dgst -md5 -binary | openssl enc -base64)
+        /root/chiwen-license \
+            -id dummy \
+            -hw $hw_sig \
+            -ia $(date -u +“%Y-%m-%d”) \
+            -ib minhao.jin \
+            -ea 2049-12-31 \
+            -o devops@160 > $cw_path/license.key
+EOF
 }
 
 do_remove() {
@@ -182,6 +182,7 @@ usage() {
     $ECHO ""
     $ECHO "Commands:"
     $ECHO "    create              create one or more machines"
+    $ECHO "    license <address>   license"
     $ECHO "    list                list devops machines"
     $ECHO "    remove [Names]      remove one or more machines"
     $ECHO ""
@@ -192,7 +193,7 @@ trap 'at_exit' EXIT
 
 while true; do
     case $1 in
-        create|list|remove|license)
+        create|license|list|remove)
             action=$1
             shift
             break ;;
