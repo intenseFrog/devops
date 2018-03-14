@@ -5,6 +5,10 @@ ECHO="$(which echo) -e"
 
 CREATE=$(dirname $BASH_SOURCE)/create_vms_2d.sh
 BASE_IMAGES=$(dirname $BASH_SOURCE)/base_images
+CHIWEN_LICENSE=$(dirname $BASH_SOURCE)/chiwen-license
+
+# license file
+LICENSE=$(dirname $BASH_SOURCE)/license.key
 
 # master of devops
 DEVOPS_MASTER=devops160
@@ -24,8 +28,8 @@ number=1
 # default os image
 os=ubuntu16.04
 
-# specify if it is for nightly environment 
-night=
+# specify action applies to wchich pool(devops, night, developer)
+pool=devops
 
 # Node pool for devops
 DEVOPS_NODES=(
@@ -55,16 +59,37 @@ NIGHT_NODES=(
     night179
 )
 
+# Nodes pool for developers
+DEVELOPER_NODES=(
+    developer180
+    developer181
+    developer182
+    developer183
+    developer184
+    developer185
+    developer186
+    developer187
+    developer188
+    developer189
+)
+
+# default values
 NODES=
 NODE_PREFIX=
+MASTER_NODE=
 
 pre() {
-    if [ -z "$night" ]; then
-        NODES=$DEVOPS_NODES
-        NODE_PREFIX=devops
-    else
+    if [ "$pool" == "night" ]; then
         NODES=$NIGHT_NODES
         NODE_PREFIX=night
+        MASTER_NODE=night170
+    elif [ "$pool" == "developer" ]; then
+        NODES=$DEVELOPER_NODES
+        NODE_PREFIX=developer
+    else
+        NODES=$DEVOPS_NODES
+        NODE_PREFIX=devops
+        MASTER_NODE=devops160
     fi
 }
 
@@ -97,6 +122,25 @@ do_create() {
 
 do_list() {
     virsh list --all
+}
+
+
+
+create_license() {
+    # mac=$(cat /sys/class/net/$(ip route show default|awk '/default/ {print $5}')/address)
+    # hw_sig=$(echo -n "${mac}HJLXZZ" | openssl dgst -md5 -binary | openssl enc -base64)
+    $CHIWEN_LICENSE \
+       -id dummy \
+       -hw GVBM6eeV93mcXsxg9HwA9A== \
+       -ia $(date -u +“%Y-%m-%d”) \
+       -ib minhao.jin \
+       -ea 2049-12-31 \
+       -o devops@160 > $LICENSE
+}
+
+do_license() {
+    create_license
+    cat $LICENSE | ssh root@10.10.1.160 'cat >> $(docker volume inspect chiwen.config -f {{.Mountpoint}})/license.key'
 }
 
 do_remove() {
@@ -132,7 +176,7 @@ usage() {
     $ECHO "Options:"
     $ECHO "    --help        Print usage"
     $ECHO "    --all         All machines (default: false)"
-    $ECHO "    --night       Apply action to nightly machines (default: false)"
+    $ECHO "    --pool        Specify which pool(devops,night,developer) the action will apply to (default: devops)"
     $ECHO "    --number=NUM  Number(up to 20) of machines (default: 1)"
     $ECHO "    --os=OS       OS image (default: ubuntu16.04)"
     $ECHO ""
@@ -148,15 +192,15 @@ trap 'at_exit' EXIT
 
 while true; do
     case $1 in
-        create|list|remove)
+        create|list|remove|license)
             action=$1
             shift
             break ;;
         --all)
             all=0
             shift ;;
-        --night)
-            night=0
+        --pool=*)
+            pool=$(echo $1 | awk -F "=" '{print $2}')
             shift ;;
         --number=*)
             number=$(echo $1 | awk -F "=" '{print $2}')
