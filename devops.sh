@@ -84,6 +84,12 @@ pre() {
         NODES=(${DEVOPS_NODES[*]})
         NODE_PREFIX=devops
     fi
+
+    if [ -n "$all" ]; then
+        number=${#NODES[@]}
+    fi
+
+    echo $number
 }
 
 do_create() {
