@@ -72,20 +72,17 @@ DEVELOPER_NODES=(
 # default values
 NODES=
 NODE_PREFIX=
-MASTER_NODE=
 
 pre() {
     if [ "$pool" == "night" ]; then
-        NODES=$NIGHT_NODES
+        NODES=(${NIGHT_NODES[*]})
         NODE_PREFIX=night
-        MASTER_NODE=night170
     elif [ "$pool" == "developer" ]; then
-        NODES=$DEVELOPER_NODES
+        NODES=(${DEVELOPER_NODES[*]})
         NODE_PREFIX=developer
     else
-        NODES=$DEVOPS_NODES
+        NODES=(${DEVOPS_NODES[*]})
         NODE_PREFIX=devops
-        MASTER_NODE=devops160
     fi
 }
 
