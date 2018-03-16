@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"myenv/mydevops"
 	"os"
 	"os/exec"
 
@@ -54,7 +53,7 @@ func main() {
 }
 
 func runCreate(cmd *cobra.Command, args []string) error {
-	deployment, err := mydevops.Parse(*pathFile)
+	deployment, err := Parse(*pathFile)
 	if err != nil {
 		return err
 	}
@@ -63,7 +62,7 @@ func runCreate(cmd *cobra.Command, args []string) error {
 }
 
 func runList(cmd *cobra.Command, args []string) error {
-	output, stderr := mydevops.Output(exec.Command("/bin/bash", "virsh", "list", "--all"))
+	output, stderr := Output(exec.Command("/bin/bash", "virsh", "list", "--all"))
 	if stderr != "" {
 		return errors.New(stderr)
 	}

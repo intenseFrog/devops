@@ -1,4 +1,4 @@
-package mydevops
+package main
 
 import (
 	"io/ioutil"
