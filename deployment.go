@@ -2,13 +2,12 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 )
 
 type Deployment struct {
-	Nodes   []*Node
-	Version string
+	Nodes []*Node
+	Myctl string
 }
 
 func (d *Deployment) Create() error {
@@ -26,13 +25,13 @@ func (d *Deployment) Deploy() error {
 		var err error
 		switch role := n.Role; role {
 		case "master":
-			err = n.Deploy()
-		case "leader":
-			err = n.Init()
-		case "worker":
-			err = n.Join()
-		default:
-			err = fmt.Errorf("unknown role: %s", role)
+			err = n.Deploy(d.Myctl)
+			// case "leader":
+			// 	err = n.Init()
+			// case "worker":
+			// 	err = n.Join()
+			// default:
+			// 	err = fmt.Errorf("unknown role: %s", role)
 		}
 
 		if err != nil {
@@ -64,7 +63,7 @@ func Parse(path string) (*Deployment, error) {
 	scanner := bufio.NewScanner(file)
 	scanner.Scan()
 
-	deployment := &Deployment{Version: scanner.Text(), Nodes: make([]*Node, 0)}
+	deployment := &Deployment{Myctl: scanner.Text(), Nodes: make([]*Node, 0)}
 
 	for scanner.Scan() {
 		node := &Node{}

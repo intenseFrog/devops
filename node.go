@@ -33,7 +33,7 @@ func (n *Node) User() string {
 	return "root@" + n.ExternalIP
 }
 
-func (n *Node) Qcow2() string {
+func (n *Node) QCOW2() string {
 	return fmt.Sprintf("%s/%s.qcow2", config.DirQcow2, n.Name)
 }
 
@@ -100,7 +100,7 @@ fi
 	var tmplBuffer bytes.Buffer
 	tmplDestroy.Execute(&tmplBuffer, &map[string]interface{}{
 		"name":  n.Name,
-		"qcow2": n.Qcow2(),
+		"qcow2": n.QCOW2(),
 	})
 
 	_, stderr := Output(exec.Command("/bin/bash", tmplBuffer.String()))
@@ -121,8 +121,35 @@ func (n *Node) Init() error {
 	return nil
 }
 
-// use elite
-func (n *Node) Deploy() error {
+func (n *Node) Deploy(myctl string) error {
+	const templateContent = `
+{{.sshPass}} ssh {{.user}} << 'EOF'
+	docker pull {{.myctl}}
+	docker run --rm --net=host \
+    	-v /var/run/docker.sock:/var/run/docker.sock \
+    	-v chiwen.config:/etc/chiwen \
+		{{.myctl}} deploy \
+		-c devops \
+		--advertise-ip={{.internalIP}} \
+		--domain={{.externalIP}} \
+		--registry-external={{.externalIP}}
+EOF
+`
+	tmplDeploy, _ := template.New("deploy").Parse(templateContent)
+	var tmplBuffer bytes.Buffer
+	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
+		"sshPass":    config.SSHPass,
+		"user":       n.User,
+		"myctl":      myctl,
+		"internalIP": n.InternalIP,
+		"externalIP": n.ExternalIP,
+	})
+
+	_, stderr := Output(exec.Command("/bin/bash", tmplBuffer.String()))
+	if stderr != "" {
+		return errors.New(stderr)
+	}
+
 	return nil
 }
 
