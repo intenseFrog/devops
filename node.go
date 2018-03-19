@@ -58,10 +58,10 @@ func (n *Node) Create() error {
 
 func (n *Node) License() error {
 	const templateContent = `
-{{.sshPass}} scp {{.pathCWLicense}} $node:/root/
+{{.sshPass}} scp {{.pathCWLicense}} {{.user}}:/root/
 {{.sshPass}} ssh {{.user}} << 'EOF'
 	cw_path=/var/lib/docker/volumes/chiwen.config/_data
-	test -d $chiwen_config_path || mkdir -p $cw_path
+	test -d $cw_path || mkdir -p $cw_path
 	mac=$(cat /sys/class/net/$(ip route show default|awk '/default/ {print $5}')/address)
 	hw_sig=$(echo -n "${mac}HJLXZZ" | openssl dgst -md5 -binary | openssl enc -base64)
 	/root/chiwen-license \
@@ -82,9 +82,9 @@ EOF
 		"user":          n.User(),
 	})
 
-	_, stderr := Output(exec.Command("/bin/bash", tmplBuffer.String()))
+	_, stderr := Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
 	if stderr != "" {
-		return errors.New(stderr)
+		fmt.Println(stderr)
 	}
 
 	return nil
@@ -105,7 +105,7 @@ fi
 		"qcow2": n.QCOW2(),
 	})
 
-	_, stderr := Output(exec.Command("/bin/bash", tmplBuffer.String()))
+	_, stderr := Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
 	if stderr != "" {
 		return errors.New(stderr)
 	}
@@ -120,6 +120,7 @@ func (n *Node) Join() error {
 
 // use elite
 func (n *Node) Init() error {
+
 	return nil
 }
 
@@ -141,15 +142,15 @@ EOF
 	var tmplBuffer bytes.Buffer
 	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
 		"sshPass":    config.SSHPass,
-		"user":       n.User,
+		"user":       n.User(),
 		"myctl":      myctl,
 		"internalIP": n.InternalIP,
 		"externalIP": n.ExternalIP,
 	})
 
-	_, stderr := Output(exec.Command("/bin/bash", tmplBuffer.String()))
+	_, stderr := Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
 	if stderr != "" {
-		return errors.New(stderr)
+		fmt.Println(stderr)
 	}
 
 	return nil

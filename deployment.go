@@ -20,28 +20,6 @@ func (d *Deployment) Create() error {
 	return nil
 }
 
-func (d *Deployment) Deploy() error {
-	for _, n := range d.Nodes {
-		var err error
-		switch role := n.Role; role {
-		case "master":
-			err = n.Deploy(d.Myctl)
-			// case "leader":
-			// 	err = n.Init()
-			// case "worker":
-			// 	err = n.Join()
-			// default:
-			// 	err = fmt.Errorf("unknown role: %s", role)
-		}
-
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (d *Deployment) Destroy() error {
 	for _, n := range d.Nodes {
 		if err := n.Destroy(); err != nil {

@@ -12,6 +12,7 @@ type Config struct {
 	DirBaseImages string
 
 	Create  string
+	Elite   string
 	License string
 
 	SSHPass string
@@ -24,8 +25,9 @@ func NewConfig(baseDIR string) *Config {
 		DirBaseImages: baseDIR + "/base_images",
 		DirQcow2:      baseDIR + "/qcow2",
 		Create:        baseDIR + "/create_vms_2d.sh",
+		Elite:         baseDIR + "/elite",
 		License:       baseDIR + "/chiwen-license",
-		SSHPass:       "sshpass -p sihua!@#890",
+		SSHPass:       `sshpass -p 'sihua!@#890'`,
 	}
 
 	return config
