@@ -42,15 +42,17 @@ func (n *Node) String() string {
 }
 
 func (n *Node) Create() error {
-	// $CREATE $node "br0#$nodeIP#255.255.255.0#10.10.1.254#8.8.8.8;br0#$dataIP#255.255.255.0" 8 64 0 $BASE_IMAGES/base-ubuntu16.04-docker17.12.1.qcow2
-	const virshFormat = `%s %s "br0#%s#255.255.255.0#10.10.1.254#8.8.8.8;br0#%s#255.255.255.0" 8 64 0 %s/%s`
-	bashCmd := fmt.Sprintf(virshFormat, config.Create, n.Name, n.ExternalIP, n.InternalIP, config.DirBaseImages, n.Image())
+	// /devops/create_vms_2d.sh developer183 "br0#10.10.1.183#255.255.255.0#10.10.1.254#8.8.8.8;br0#172.16.88.183#255.255.255.0" 8 64 0 /devops/base_images/ubuntu16.04-docker17.12.1.qcow2
+	network := fmt.Sprintf("br0#%s#255.255.255.0#10.10.1.254#8.8.8.8;br0#%s#255.255.255.0", n.ExternalIP, n.InternalIP)
+	cpu, memory, disk := "8", "64", "0"
+	imagePath := fmt.Sprintf("%s/%s", config.DirBaseImages, n.Image())
 
-	_, stderr := Output(exec.Command("/bin/bash", bashCmd))
+	out, stderr := Output(exec.Command(config.Create, n.Name, network, cpu, memory, disk, imagePath))
 	if stderr != "" {
 		return errors.New(stderr)
 	}
 
+	fmt.Println(out)
 	return nil
 }
 
