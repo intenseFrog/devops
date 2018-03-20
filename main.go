@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -52,6 +53,9 @@ func main() {
 		RunE:  runDestroy,
 	}
 	destroyCmd.Flags().StringP("file", "f", "", "Specify the file path")
+	destroyCmd.Flags().BoolP("yes", "y", false, "Assume automatic yes on removing machines")
+	destroyCmd.Flags().Bool("all", false, "Remove all the machines available")
+	// destroyCmd.Flags().Boo("file", "f", "", "Specify the file path")
 
 	listCmd := &cobra.Command{
 		Use:   "list",
@@ -59,6 +63,7 @@ func main() {
 		Long:  "list nodes",
 		RunE:  runList,
 	}
+	listCmd.Flags().BoolP("quiet", "q", false, "List names only")
 
 	RootCmd.AddCommand(cleanKnowHosts)
 	RootCmd.AddCommand(deployCmd)
@@ -116,7 +121,17 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 }
 
 func runList(cmd *cobra.Command, args []string) error {
-	output, stderr := Output(exec.Command("virsh", "list", "--all"))
+	quiet, err := cmd.Flags().GetBool("quiet")
+	if err != nil {
+		return err
+	}
+
+	arguments := []string{"list", "--all"}
+	if quiet {
+		arguments = append(arguments, "--name")
+	}
+
+	output, stderr := Output(exec.Command("virsh", arguments...))
 	if stderr != "" {
 		return errors.New(stderr)
 	}
@@ -165,12 +180,30 @@ func runCleanKnowHosts(cmd *cobra.Command, args []string) error {
 
 func runDestroy(cmd *cobra.Command, args []string) error {
 	var nodes []*Node
+
+	all, err := cmd.Flags().GetBool("all")
+	if err != nil {
+		return err
+	}
+
 	path, err := cmd.Flags().GetString("file")
 	if err != nil {
 		return err
 	}
 
-	if path == "" {
+	if all && path != "" {
+		return errors.New("Cannot specify --all and --file at same time")
+	}
+
+	if all {
+		output, stderr := Output(exec.Command("virsh", "list", "--all", "--name"))
+		if stderr != "" {
+			return errors.New(stderr)
+		}
+		for _, name := range strings.Split(output, "\n") {
+			nodes = append(nodes, &Node{Name: name})
+		}
+	} else if path == "" {
 		for _, name := range args {
 			nodes = append(nodes, &Node{Name: name})
 		}
@@ -182,9 +215,22 @@ func runDestroy(cmd *cobra.Command, args []string) error {
 		nodes = deployment.Nodes
 	}
 
-	for _, node := range nodes {
-		if err = node.Destroy(); err != nil {
-			fmt.Printf("%s removal failed: %s\n", node.Name, err.Error())
+	yes, err := cmd.Flags().GetBool("yes")
+	if err != nil {
+		return err
+	}
+
+	names := make([]string, len(nodes))
+	for i, n := range nodes {
+		names[i] = n.Name
+	}
+
+	msg := fmt.Sprintf("About to remove %s", strings.Join(names, ", "))
+	if yes || Confirm(msg) {
+		for _, node := range nodes {
+			if err = node.Destroy(); err != nil {
+				fmt.Printf("%s removal failed: %s\n", node.Name, err.Error())
+			}
 		}
 	}
 

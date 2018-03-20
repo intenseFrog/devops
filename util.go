@@ -1,12 +1,28 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"os/exec"
 	"strings"
 )
+
+func Confirm(msg string) bool {
+	fmt.Println(msg)
+	fmt.Print("Are you sure? (y/n): ")
+
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
+
+	if scanner.Text() == "y" {
+		return true
+	}
+
+	return false
+}
 
 func Elite(args ...string) string {
 	fmt.Printf("\n\n\ninit: %s %s\n\n\n", config.Elite, strings.Join(args, " "))
