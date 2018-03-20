@@ -8,6 +8,8 @@ import (
 type Deployment struct {
 	Nodes []*Node
 	Myctl string
+
+	Master *Node
 }
 
 func (d *Deployment) Create() error {
@@ -44,9 +46,13 @@ func Parse(path string) (*Deployment, error) {
 	deployment := &Deployment{Myctl: scanner.Text(), Nodes: make([]*Node, 0)}
 
 	for scanner.Scan() {
-		node := &Node{}
+		node := &Node{Deployment: deployment}
 		if err := node.Parse(scanner.Text()); err != nil {
 			return nil, err
+		}
+
+		if node.Role == "master" {
+			deployment.Master = node
 		}
 
 		deployment.Nodes = append(deployment.Nodes, node)

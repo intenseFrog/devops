@@ -11,7 +11,8 @@ import (
 )
 
 type Node struct {
-	Pool string
+	Deployment *Deployment
+	Pool       string
 
 	// Virsh
 	Name       string
@@ -31,6 +32,10 @@ func (n *Node) Image() string {
 
 func (n *Node) UserAtNode() string {
 	return "root@" + n.ExternalIP
+}
+
+func (n *Node) SSH() string {
+	return "ssh -o StrictHostKeyChecking=no root@" + n.ExternalIP
 }
 
 func (n *Node) QCOW2() string {
@@ -57,7 +62,8 @@ func (n *Node) Create() error {
 }
 
 func (n *Node) CleanKnownHost() {
-	out, stderr := Output(exec.Command("ssh-keygen", "-f", "/root/.ssh/known_hosts", "-R", n.ExternalIP))
+	// out, stderr := Output(exec.Command("ssh-keygen", "-f", "/root/.ssh/known_hosts", "-R", n.ExternalIP))
+	out, stderr := Output(exec.Command("ssh-keygen", "-R", n.Name))
 	if stderr != "" {
 		fmt.Println(stderr)
 	}
@@ -67,8 +73,8 @@ func (n *Node) CleanKnownHost() {
 
 func (n *Node) License() error {
 	const templateContent = `
-{{.sshPass}} scp {{.pathCWLicense}} {{.user}}:/root/
-{{.sshPass}} ssh {{.user}} << 'EOF'
+{{.sshPass}} scp -o StrictHostKeyChecking=no {{.pathCWLicense}} {{.userAtNode}}:/root/
+{{.sshPass}} {{.ssh}} << 'EOF'
 	cw_path=/var/lib/docker/volumes/chiwen.config/_data
 	test -d $cw_path || mkdir -p $cw_path
 	mac=$(cat /sys/class/net/$(ip route show default|awk '/default/ {print $5}')/address)
@@ -87,8 +93,9 @@ EOF
 	var tmplBuffer bytes.Buffer
 	tmplLicense.Execute(&tmplBuffer, &map[string]interface{}{
 		"sshPass":       config.SSHPass,
+		"ssh":           n.SSH(),
 		"pathCWLicense": config.License,
-		"user":          n.UserAtNode(),
+		"userAtNode":    n.UserAtNode(),
 	})
 
 	_, stderr := Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
@@ -124,39 +131,23 @@ fi
 
 // use elite
 func (n *Node) Join() error {
-	return nil
-}
-
-// use elite
-func (n *Node) Init() error {
-	elite := func(args ...string) string {
-		stdout, stderr := Output(exec.Command(config.Elite, args...))
-		if stderr != "" {
-			fmt.Println(stderr)
-		}
-
-		return stdout
-	}
-
-	elite("login", "-u", "admin", "-p", "admin", n.ExternalIP)
-	elite("cluster", "create", n.Cluster, "swarm")
-	elite("cluster", "use", n.Cluster)
-	deployScript := elite("node", "deploy-script", "-q", fmt.Sprintf("--ip=%s", n.InternalIP))
-
 	const templateContent = `
-{{.sshPass}} ssh {{.user}} << 'EOF'
+{{.sshPass}} {{.ssh}} << 'EOF'
 	{{.deployCmd}}
 EOF
 `
+
+	deployScript := Elite("node", "deploy-script", "-q")
 
 	tmplDeploy, _ := template.New("deploy-script").Parse(templateContent)
 	var tmplBuffer bytes.Buffer
 	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
 		"sshPass":   config.SSHPass,
-		"user":      n.UserAtNode(),
+		"ssh":       n.SSH(),
 		"deployCmd": deployScript,
 	})
 
+	fmt.Println(tmplBuffer.String())
 	_, stderr := Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
 	if stderr != "" {
 		fmt.Println(stderr)
@@ -165,9 +156,38 @@ EOF
 	return nil
 }
 
-func (n *Node) Deploy(myctl string) error {
+func (n *Node) Init() error {
 	const templateContent = `
-{{.sshPass}} ssh {{.user}} << 'EOF'
+{{.sshPass}} {{.ssh}} << 'EOF'
+	{{.deployCmd}}
+EOF
+	`
+
+	Elite("login", "-u", "admin", "-p", "admin", n.Deployment.Master.ExternalIP)
+	Elite("cluster", "create", n.Cluster, "--swarm")
+	Elite("cluster", "use", n.Cluster)
+	deployScript := Elite("node", "deploy-script", "-q", fmt.Sprintf("--ip=%s", n.InternalIP))
+
+	tmplDeploy, _ := template.New("deploy-script").Parse(templateContent)
+	var tmplBuffer bytes.Buffer
+	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
+		"sshPass":   config.SSHPass,
+		"ssh":       n.SSH(),
+		"deployCmd": deployScript,
+	})
+
+	fmt.Println(tmplBuffer.String())
+	_, stderr := Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
+	if stderr != "" {
+		fmt.Println(stderr)
+	}
+
+	return nil
+}
+
+func (n *Node) Deploy() error {
+	const templateContent = `
+{{.sshPass}} {{.ssh}} << 'EOF'
 	docker pull {{.myctl}}
 	docker run --rm --net=host \
     	-v /var/run/docker.sock:/var/run/docker.sock \
@@ -183,8 +203,8 @@ EOF
 	var tmplBuffer bytes.Buffer
 	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
 		"sshPass":    config.SSHPass,
-		"user":       n.UserAtNode(),
-		"myctl":      myctl,
+		"ssh":        n.SSH(),
+		"myctl":      n.Deployment.Myctl,
 		"internalIP": n.InternalIP,
 		"externalIP": n.ExternalIP,
 	})

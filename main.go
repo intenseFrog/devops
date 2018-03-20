@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -21,6 +20,22 @@ func main() {
 			cmd.Help()
 		},
 	}
+
+	cleanKnowHosts := &cobra.Command{
+		Use:   "clean-known",
+		Short: "clean .ssh/known_hosts",
+		Long:  "clean .ssh/known_hosts",
+		RunE:  runCleanKnowHosts,
+	}
+	cleanKnowHosts.Flags().StringP("file", "f", "", "Specify the file path")
+
+	createCmd := &cobra.Command{
+		Use:   "create",
+		Short: "create a bunch of machines",
+		Long:  "create a bunch of machines",
+		RunE:  runCreate,
+	}
+	createCmd.Flags().StringP("file", "f", "", "Specify the file path")
 
 	deployCmd := &cobra.Command{
 		Use:   "deploy",
@@ -45,6 +60,7 @@ func main() {
 		RunE:  runList,
 	}
 
+	RootCmd.AddCommand(cleanKnowHosts)
 	RootCmd.AddCommand(deployCmd)
 	RootCmd.AddCommand(listCmd)
 	RootCmd.AddCommand(destroyCmd)
@@ -71,19 +87,16 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	time.Sleep(30 * time.Second)
+	// time.Sleep(30 * time.Second)
 
 	for _, node := range deployment.Nodes {
-
-		node.CleanKnownHost()
-
 		var err error
 		switch role := node.Role; role {
 		case "master":
 			fmt.Println("Licensing....")
 			if err = node.License(); err == nil {
 				fmt.Println("Deploying....")
-				err = node.Deploy(deployment.Myctl)
+				err = node.Deploy()
 			}
 		case "leader":
 			fmt.Println("Initializing....")
@@ -109,6 +122,44 @@ func runList(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Println(output)
+	return nil
+}
+
+func runCreate(cmd *cobra.Command, args []string) error {
+	path, err := cmd.Flags().GetString("file")
+	if err != nil {
+		return err
+	}
+
+	deployment, err := Parse(path)
+	if err != nil {
+		return err
+	}
+
+	for _, node := range deployment.Nodes {
+		if err := node.Create(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func runCleanKnowHosts(cmd *cobra.Command, args []string) error {
+	path, err := cmd.Flags().GetString("file")
+	if err != nil {
+		return err
+	}
+
+	deployment, err := Parse(path)
+	if err != nil {
+		return err
+	}
+
+	for _, node := range deployment.Nodes {
+		node.CleanKnownHost()
+	}
+
 	return nil
 }
 
