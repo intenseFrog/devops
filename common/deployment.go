@@ -41,8 +41,8 @@ func (d *Deployment) Parse(path string) error {
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
-	scanner.Scan()
 
+	scanner.Scan()
 	d.Myctl = scanner.Text()
 	d.Nodes = make([]*Node, 0)
 

@@ -94,6 +94,7 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	defer common.Elite("logout")
 	// time.Sleep(30 * time.Second)
 
 	for _, node := range deployment.Nodes {
@@ -107,9 +108,14 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 			}
 		case "leader":
 			fmt.Println("Initializing....")
-			err = node.Init()
+			if clusterNode, err := node.ClusterNode(); err == nil {
+				err = clusterNode.Init()
+			}
 		case "worker":
-			err = node.Join()
+			fmt.Println("Joining....")
+			if clusterNode, err := node.ClusterNode(); err == nil {
+				err = clusterNode.Join()
+			}
 		default:
 			err = fmt.Errorf("unknown role: %s", role)
 		}

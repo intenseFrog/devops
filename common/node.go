@@ -22,8 +22,20 @@ type Node struct {
 	Docker     string
 
 	//  Chiwen
+	Kind    string
 	Cluster string
 	Role    string
+}
+
+func (n *Node) ClusterNode() (ClusterNode, error) {
+	switch n.Kind {
+	case "swarm":
+		return &SwarmNode{InfraNode: n}, nil
+	case "kubernetes":
+		return &KubernetesNode{InfraNode: n}, nil
+	}
+
+	return nil, fmt.Errorf("invalid type of node: %s", n.Kind)
 }
 
 func (n *Node) Image() string {
@@ -132,62 +144,6 @@ fi
 	return nil
 }
 
-// use elite
-func (n *Node) Join() error {
-	const templateContent = `
-{{.sshPass}} {{.ssh}} << 'EOF'
-	{{.deployCmd}}
-EOF
-`
-
-	deployScript := Elite("node", "deploy-script", "-q")
-
-	tmplDeploy, _ := template.New("deploy-script").Parse(templateContent)
-	var tmplBuffer bytes.Buffer
-	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
-		"sshPass":   config.SSHPass,
-		"ssh":       n.SSH(),
-		"deployCmd": deployScript,
-	})
-
-	fmt.Println(tmplBuffer.String())
-	_, stderr := Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
-	if stderr != "" {
-		fmt.Println(stderr)
-	}
-
-	return nil
-}
-
-func (n *Node) Init() error {
-	const templateContent = `
-{{.sshPass}} {{.ssh}} << 'EOF'
-	{{.deployCmd}}
-EOF
-	`
-
-	Elite("login", "-u", "admin", "-p", "admin", n.Deployment.Master.ExternalIP)
-	Elite("cluster", "create", n.Cluster, "--swarm")
-	Elite("cluster", "use", n.Cluster)
-	deployScript := Elite("node", "deploy-script", "-q", fmt.Sprintf("--ip=%s", n.InternalIP))
-
-	tmplDeploy, _ := template.New("deploy-script").Parse(templateContent)
-	var tmplBuffer bytes.Buffer
-	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
-		"sshPass":   config.SSHPass,
-		"ssh":       n.SSH(),
-		"deployCmd": deployScript,
-	})
-
-	fmt.Println(tmplBuffer.String())
-	_, stderr := Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
-	if stderr != "" {
-		fmt.Println(stderr)
-	}
-
-	return nil
-}
-
 func (n *Node) Deploy() error {
 	const templateContent = `
 {{.sshPass}} {{.ssh}} << 'EOF'
@@ -231,8 +187,9 @@ func (n *Node) Parse(line string) error {
 	n.InternalIP = list[2]
 	n.OS = list[3]
 	n.Docker = list[4]
-	n.Cluster = list[5]
-	n.Role = list[6]
+	n.Kind = list[5]
+	n.Cluster = list[6]
+	n.Role = list[7]
 
 	return nil
 }
