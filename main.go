@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/spf13/cobra"
 )
 
 // CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o mydevops
-
-var pathFile *string
 
 func main() {
 	RootCmd := &cobra.Command{
@@ -23,20 +22,21 @@ func main() {
 		},
 	}
 
-	createCmd := &cobra.Command{
-		Use:   "create",
-		Short: "create a cluster",
-		Long:  "create a cluster",
-		RunE:  runCreate,
+	deployCmd := &cobra.Command{
+		Use:   "deploy",
+		Short: "create and deploy a cluster",
+		Long:  "create and deploy a cluster",
+		RunE:  runDeploy,
 	}
-	pathFile = createCmd.Flags().StringP("file", "f", "", "Specify the file path")
+	deployCmd.Flags().StringP("file", "f", "", "Specify the file path")
 
 	destroyCmd := &cobra.Command{
-		Use:   "destroy [nodes]",
+		Use:   "destroy",
 		Short: "destroy one or more nodes",
 		Long:  "destroy one or more nodes",
 		RunE:  runDestroy,
 	}
+	destroyCmd.Flags().StringP("file", "f", "", "Specify the file path")
 
 	listCmd := &cobra.Command{
 		Use:   "list",
@@ -45,7 +45,7 @@ func main() {
 		RunE:  runList,
 	}
 
-	RootCmd.AddCommand(createCmd)
+	RootCmd.AddCommand(deployCmd)
 	RootCmd.AddCommand(listCmd)
 	RootCmd.AddCommand(destroyCmd)
 
@@ -54,13 +54,52 @@ func main() {
 	}
 }
 
-func runCreate(cmd *cobra.Command, args []string) error {
-	deployment, err := Parse(*pathFile)
+func runDeploy(cmd *cobra.Command, args []string) error {
+	path, err := cmd.Flags().GetString("file")
 	if err != nil {
 		return err
 	}
 
-	return deployment.Create()
+	deployment, err := Parse(path)
+	if err != nil {
+		return err
+	}
+
+	for _, node := range deployment.Nodes {
+		if err := node.Create(); err != nil {
+			return err
+		}
+	}
+
+	time.Sleep(30 * time.Second)
+
+	for _, node := range deployment.Nodes {
+
+		node.CleanKnownHost()
+
+		var err error
+		switch role := node.Role; role {
+		case "master":
+			fmt.Println("Licensing....")
+			if err = node.License(); err == nil {
+				fmt.Println("Deploying....")
+				err = node.Deploy(deployment.Myctl)
+			}
+		case "leader":
+			fmt.Println("Initializing....")
+			err = node.Init()
+		case "worker":
+			err = node.Join()
+		default:
+			err = fmt.Errorf("unknown role: %s", role)
+		}
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func runList(cmd *cobra.Command, args []string) error {
@@ -74,5 +113,29 @@ func runList(cmd *cobra.Command, args []string) error {
 }
 
 func runDestroy(cmd *cobra.Command, args []string) error {
-	return nil
+	var nodes []*Node
+	path, err := cmd.Flags().GetString("file")
+	if err != nil {
+		return err
+	}
+
+	if path == "" {
+		for _, name := range args {
+			nodes = append(nodes, &Node{Name: name})
+		}
+	} else {
+		deployment, err := Parse(path)
+		if err != nil {
+			return err
+		}
+		nodes = deployment.Nodes
+	}
+
+	for _, node := range nodes {
+		if err = node.Destroy(); err != nil {
+			fmt.Printf("%s removal failed: %s\n", node.Name, err.Error())
+		}
+	}
+
+	return err
 }

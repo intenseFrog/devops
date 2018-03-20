@@ -24,9 +24,9 @@ func NewConfig(baseDIR string) *Config {
 	config := &Config{
 		DirBaseImages: baseDIR + "/base_images",
 		DirQcow2:      baseDIR + "/qcow2",
-		Create:        baseDIR + "/create_vms_2d.sh",
-		Elite:         baseDIR + "/elite",
-		License:       baseDIR + "/chiwen-license",
+		Create:        baseDIR + "/scripts/create_vms_2d.sh",
+		Elite:         baseDIR + "/scripts/elite",
+		License:       baseDIR + "/scripts/chiwen-license",
 		SSHPass:       `sshpass -p 'sihua!@#890'`,
 	}
 
@@ -34,10 +34,10 @@ func NewConfig(baseDIR string) *Config {
 }
 
 func init() {
-	myEnvDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	baseDIR, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	config = NewConfig(myEnvDir)
+	config = NewConfig(baseDIR)
 }

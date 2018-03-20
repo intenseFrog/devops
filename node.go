@@ -29,7 +29,7 @@ func (n *Node) Image() string {
 	return fmt.Sprintf("%s-%s.qcow2", n.OS, n.Docker)
 }
 
-func (n *Node) User() string {
+func (n *Node) UserAtNode() string {
 	return "root@" + n.ExternalIP
 }
 
@@ -56,6 +56,15 @@ func (n *Node) Create() error {
 	return nil
 }
 
+func (n *Node) CleanKnownHost() {
+	out, stderr := Output(exec.Command("ssh-keygen", "-f", "/root/.ssh/known_hosts", "-R", n.ExternalIP))
+	if stderr != "" {
+		fmt.Println(stderr)
+	}
+
+	fmt.Println(out)
+}
+
 func (n *Node) License() error {
 	const templateContent = `
 {{.sshPass}} scp {{.pathCWLicense}} {{.user}}:/root/
@@ -79,7 +88,7 @@ EOF
 	tmplLicense.Execute(&tmplBuffer, &map[string]interface{}{
 		"sshPass":       config.SSHPass,
 		"pathCWLicense": config.License,
-		"user":          n.User(),
+		"user":          n.UserAtNode(),
 	})
 
 	_, stderr := Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
@@ -120,6 +129,38 @@ func (n *Node) Join() error {
 
 // use elite
 func (n *Node) Init() error {
+	elite := func(args ...string) string {
+		stdout, stderr := Output(exec.Command(config.Elite, args...))
+		if stderr != "" {
+			fmt.Println(stderr)
+		}
+
+		return stdout
+	}
+
+	elite("login", "-u", "admin", "-p", "admin", n.ExternalIP)
+	elite("cluster", "create", n.Cluster, "swarm")
+	elite("cluster", "use", n.Cluster)
+	deployScript := elite("node", "deploy-script", "-q", fmt.Sprintf("--ip=%s", n.InternalIP))
+
+	const templateContent = `
+{{.sshPass}} ssh {{.user}} << 'EOF'
+	{{.deployCmd}}
+EOF
+`
+
+	tmplDeploy, _ := template.New("deploy-script").Parse(templateContent)
+	var tmplBuffer bytes.Buffer
+	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
+		"sshPass":   config.SSHPass,
+		"user":      n.UserAtNode(),
+		"deployCmd": deployScript,
+	})
+
+	_, stderr := Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
+	if stderr != "" {
+		fmt.Println(stderr)
+	}
 
 	return nil
 }
@@ -142,7 +183,7 @@ EOF
 	var tmplBuffer bytes.Buffer
 	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
 		"sshPass":    config.SSHPass,
-		"user":       n.User(),
+		"user":       n.UserAtNode(),
 		"myctl":      myctl,
 		"internalIP": n.InternalIP,
 		"externalIP": n.ExternalIP,
