@@ -178,7 +178,7 @@ EOF
 
 func (n *Node) Parse(line string) error {
 	list := strings.Split(line, " ")
-	if len(list) != 7 {
+	if len(list) != 8 {
 		return fmt.Errorf("invalid line: %s", line)
 	}
 
