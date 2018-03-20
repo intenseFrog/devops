@@ -180,6 +180,7 @@ func runCleanKnowHosts(cmd *cobra.Command, args []string) error {
 
 func runDestroy(cmd *cobra.Command, args []string) error {
 	var nodes []*Node
+	names := make([]string, 0)
 
 	all, err := cmd.Flags().GetBool("all")
 	if err != nil {
@@ -200,11 +201,13 @@ func runDestroy(cmd *cobra.Command, args []string) error {
 		if stderr != "" {
 			return errors.New(stderr)
 		}
-		for _, name := range strings.Split(output, "\n") {
+		names = strings.Split(output, "\n")
+		for _, name := range names {
 			nodes = append(nodes, &Node{Name: name})
 		}
 	} else if path == "" {
-		for _, name := range args {
+		names = args
+		for _, name := range names {
 			nodes = append(nodes, &Node{Name: name})
 		}
 	} else {
@@ -213,16 +216,14 @@ func runDestroy(cmd *cobra.Command, args []string) error {
 			return err
 		}
 		nodes = deployment.Nodes
+		for _, n := range nodes {
+			names = append(names, n.Name)
+		}
 	}
 
 	yes, err := cmd.Flags().GetBool("yes")
 	if err != nil {
 		return err
-	}
-
-	names := make([]string, len(nodes))
-	for i, n := range nodes {
-		names[i] = n.Name
 	}
 
 	msg := fmt.Sprintf("About to remove %s", strings.Join(names, ", "))
