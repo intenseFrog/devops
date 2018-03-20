@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"strings"
 
+	"mydevops/common"
+
 	"github.com/spf13/cobra"
 )
 
@@ -81,8 +83,8 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	deployment, err := Parse(path)
-	if err != nil {
+	deployment := &common.Deployment{}
+	if err := deployment.Parse(path); err != nil {
 		return err
 	}
 
@@ -131,7 +133,7 @@ func runList(cmd *cobra.Command, args []string) error {
 		arguments = append(arguments, "--name")
 	}
 
-	output, stderr := Output(exec.Command("virsh", arguments...))
+	output, stderr := common.Output(exec.Command("virsh", arguments...))
 	if stderr != "" {
 		return errors.New(stderr)
 	}
@@ -146,8 +148,8 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	deployment, err := Parse(path)
-	if err != nil {
+	deployment := &common.Deployment{}
+	if err := deployment.Parse(path); err != nil {
 		return err
 	}
 
@@ -166,8 +168,8 @@ func runCleanKnowHosts(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	deployment, err := Parse(path)
-	if err != nil {
+	deployment := &common.Deployment{}
+	if err := deployment.Parse(path); err != nil {
 		return err
 	}
 
@@ -179,7 +181,7 @@ func runCleanKnowHosts(cmd *cobra.Command, args []string) error {
 }
 
 func runDestroy(cmd *cobra.Command, args []string) error {
-	var nodes []*Node
+	var nodes []*common.Node
 	names := make([]string, 0)
 
 	all, err := cmd.Flags().GetBool("all")
@@ -197,22 +199,22 @@ func runDestroy(cmd *cobra.Command, args []string) error {
 	}
 
 	if all {
-		output, stderr := Output(exec.Command("virsh", "list", "--all", "--name"))
+		output, stderr := common.Output(exec.Command("virsh", "list", "--all", "--name"))
 		if stderr != "" {
 			return errors.New(stderr)
 		}
 		names = strings.Split(output, "\n")
 		for _, name := range names {
-			nodes = append(nodes, &Node{Name: name})
+			nodes = append(nodes, &common.Node{Name: name})
 		}
 	} else if path == "" {
 		names = args
 		for _, name := range names {
-			nodes = append(nodes, &Node{Name: name})
+			nodes = append(nodes, &common.Node{Name: name})
 		}
 	} else {
-		deployment, err := Parse(path)
-		if err != nil {
+		deployment := &common.Deployment{}
+		if err := deployment.Parse(path); err != nil {
 			return err
 		}
 		nodes = deployment.Nodes
@@ -227,13 +229,13 @@ func runDestroy(cmd *cobra.Command, args []string) error {
 	}
 
 	msg := fmt.Sprintf("About to remove %s", strings.Join(names, ", "))
-	if yes || Confirm(msg) {
+	if yes || common.Confirm(msg) {
 		for _, node := range nodes {
-			if err = node.Destroy(); err != nil {
+			if err := node.Destroy(); err != nil {
 				fmt.Printf("%s removal failed: %s\n", node.Name, err.Error())
 			}
 		}
 	}
 
-	return err
+	return nil
 }

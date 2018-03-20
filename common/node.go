@@ -1,4 +1,4 @@
-package main
+package common
 
 import (
 	"bytes"
@@ -38,6 +38,10 @@ func (n *Node) SSH() string {
 	return "ssh -o StrictHostKeyChecking=no root@" + n.ExternalIP
 }
 
+func (n *Node) SCP(src, dst string) string {
+	return fmt.Sprintf("scp -o StrictHostKeyChecking=no %s %s", src, dst)
+}
+
 func (n *Node) QCOW2() string {
 	return fmt.Sprintf("%s/%s.qcow2", config.DirQcow2, n.Name)
 }
@@ -73,7 +77,7 @@ func (n *Node) CleanKnownHost() {
 
 func (n *Node) License() error {
 	const templateContent = `
-{{.sshPass}} scp -o StrictHostKeyChecking=no {{.pathCWLicense}} {{.userAtNode}}:/root/
+{{.sshPass}} {{.scp}}
 {{.sshPass}} {{.ssh}} << 'EOF'
 	cw_path=/var/lib/docker/volumes/chiwen.config/_data
 	test -d $cw_path || mkdir -p $cw_path
@@ -92,10 +96,9 @@ EOF
 	tmplLicense, _ := template.New("license").Parse(templateContent)
 	var tmplBuffer bytes.Buffer
 	tmplLicense.Execute(&tmplBuffer, &map[string]interface{}{
-		"sshPass":       config.SSHPass,
-		"ssh":           n.SSH(),
-		"pathCWLicense": config.License,
-		"userAtNode":    n.UserAtNode(),
+		"sshPass": config.SSHPass,
+		"ssh":     n.SSH(),
+		"scp":     n.SCP(config.License, fmt.Sprintf("%s:/root/", n.UserAtNode())),
 	})
 
 	_, stderr := Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))

@@ -1,4 +1,4 @@
-package main
+package common
 
 import (
 	"bufio"
@@ -33,30 +33,31 @@ func (d *Deployment) Destroy() error {
 }
 
 // TODO: does YAML make more sense?
-func Parse(path string) (*Deployment, error) {
+func (d *Deployment) Parse(path string) error {
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
 	scanner.Scan()
 
-	deployment := &Deployment{Myctl: scanner.Text(), Nodes: make([]*Node, 0)}
+	d.Myctl = scanner.Text()
+	d.Nodes = make([]*Node, 0)
 
 	for scanner.Scan() {
-		node := &Node{Deployment: deployment}
+		node := &Node{Deployment: d}
 		if err := node.Parse(scanner.Text()); err != nil {
-			return nil, err
+			return err
 		}
 
 		if node.Role == "master" {
-			deployment.Master = node
+			d.Master = node
 		}
 
-		deployment.Nodes = append(deployment.Nodes, node)
+		d.Nodes = append(d.Nodes, node)
 	}
 
-	return deployment, nil
+	return nil
 }
