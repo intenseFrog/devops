@@ -25,7 +25,7 @@ func Confirm(msg string) bool {
 }
 
 func Elite(args ...string) string {
-	fmt.Printf("\ninit: %s %s\n", config.Elite, strings.Join(args, " "))
+	fmt.Printf("%s %s\n", config.Elite, strings.Join(args, " "))
 	stdout, stderr := Output(exec.Command(config.Elite, args...))
 	if stderr != "" {
 		fmt.Println(stderr)

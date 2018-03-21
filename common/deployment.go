@@ -3,6 +3,8 @@ package common
 import (
 	"bufio"
 	"os"
+	"sort"
+	"strings"
 )
 
 type Deployment struct {
@@ -58,6 +60,17 @@ func (d *Deployment) Parse(path string) error {
 
 		d.Nodes = append(d.Nodes, node)
 	}
+
+	sort.Slice(d.Nodes, func(i, j int) bool {
+		iNode, jNode := d.Nodes[i], d.Nodes[j]
+		if iNode.Role == "master" {
+			return true
+		} else if jNode.Role == "master" {
+			return false
+		}
+
+		return strings.Compare(iNode.Cluster+iNode.Role, jNode.Cluster+jNode.Role) <= 0
+	})
 
 	return nil
 }
