@@ -26,13 +26,20 @@ EOF
 
 	node := n.InfraNode
 
-	Elite("login", "-u", "admin", "-p", "admin", node.Deployment.Master.ExternalIP)
-	Elite("cluster", "create", node.Cluster, "--swarm")
+	Elite("login", "-u", "admin", "-p", "admin", node.deployment.master.ExternalIP)
+
+	createArgs := []string{"cluster", "create", node.Cluster, "--swarm"}
+	for k, v := range node.Params {
+		createArgs = append(createArgs, "-p", fmt.Sprintf("%s=%s", k, v))
+	}
+	Elite(createArgs...)
+
 	Elite("cluster", "use", node.Cluster)
+
 	deployScript := Elite("node", "deploy-script", "-q", fmt.Sprintf("--ip=%s", node.InternalIP))
 
-	tmplDeploy, _ := template.New("deploy-script").Parse(templateContent)
 	var tmplBuffer bytes.Buffer
+	tmplDeploy, _ := template.New("deploy-script").Parse(templateContent)
 	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
 		"sshPass":   config.SSHPass,
 		"ssh":       node.SSH(),
@@ -56,8 +63,8 @@ EOF
 
 	deployScript := Elite("node", "deploy-script", "-q")
 
-	tmplDeploy, _ := template.New("deploy-script").Parse(templateContent)
 	var tmplBuffer bytes.Buffer
+	tmplDeploy, _ := template.New("deploy-script").Parse(templateContent)
 	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
 		"sshPass":   config.SSHPass,
 		"ssh":       n.InfraNode.SSH(),
@@ -85,13 +92,20 @@ EOF
 
 	node := n.InfraNode
 
-	Elite("login", "-u", "admin", "-p", "admin", node.Deployment.Master.ExternalIP)
-	Elite("cluster", "create", node.Cluster, "--kubernetes", "-p", "network=flannel")
+	Elite("login", "-u", "admin", "-p", "admin", node.deployment.master.ExternalIP)
+
+	createArgs := []string{"cluster", "create", node.Cluster, "--kubernetes"}
+	for k, v := range node.Params {
+		createArgs = append(createArgs, "-p", fmt.Sprintf("%s=%s", k, v))
+	}
+	Elite(createArgs...)
+
 	Elite("cluster", "use", node.Cluster)
+
 	deployScript := Elite("node", "deploy-script", "-q", fmt.Sprintf("--ip=%s", node.InternalIP))
 
-	tmplDeploy, _ := template.New("deploy-script").Parse(templateContent)
 	var tmplBuffer bytes.Buffer
+	tmplDeploy, _ := template.New("deploy-script").Parse(templateContent)
 	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
 		"sshPass":   config.SSHPass,
 		"ssh":       node.SSH(),

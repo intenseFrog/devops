@@ -39,6 +39,14 @@ func main() {
 		RunE:  runCreate,
 	}
 	createCmd.Flags().StringP("file", "f", "", "Specify the file path")
+	createCmd.MarkFlagRequired("file")
+
+	exampleCmd := &cobra.Command{
+		Use:   "example",
+		Short: "print out an example of a yaml file",
+		Long:  "print out an example of a yaml file",
+		Run:   runExample,
+	}
 
 	deployCmd := &cobra.Command{
 		Use:   "deploy",
@@ -47,6 +55,7 @@ func main() {
 		RunE:  runDeploy,
 	}
 	deployCmd.Flags().StringP("file", "f", "", "Specify the file path")
+	deployCmd.MarkFlagRequired("file")
 
 	destroyCmd := &cobra.Command{
 		Use:   "destroy",
@@ -68,7 +77,9 @@ func main() {
 	listCmd.Flags().BoolP("quiet", "q", false, "List names only")
 
 	RootCmd.AddCommand(cleanKnowHosts)
+	RootCmd.AddCommand(createCmd)
 	RootCmd.AddCommand(deployCmd)
+	RootCmd.AddCommand(exampleCmd)
 	RootCmd.AddCommand(listCmd)
 	RootCmd.AddCommand(destroyCmd)
 
@@ -83,8 +94,8 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	deployment := &common.Deployment{}
-	if err := deployment.Parse(path); err != nil {
+	deployment, err := common.ParseDeployment(path)
+	if err != nil {
 		return err
 	}
 
@@ -154,8 +165,8 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	deployment := &common.Deployment{}
-	if err := deployment.Parse(path); err != nil {
+	deployment, err := common.ParseDeployment(path)
+	if err != nil {
 		return err
 	}
 
@@ -174,8 +185,8 @@ func runCleanKnowHosts(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	deployment := &common.Deployment{}
-	if err := deployment.Parse(path); err != nil {
+	deployment, err := common.ParseDeployment(path)
+	if err != nil {
 		return err
 	}
 
@@ -219,8 +230,8 @@ func runDestroy(cmd *cobra.Command, args []string) error {
 			nodes = append(nodes, &common.Node{Name: name})
 		}
 	} else {
-		deployment := &common.Deployment{}
-		if err := deployment.Parse(path); err != nil {
+		deployment, err := common.ParseDeployment(path)
+		if err != nil {
 			return err
 		}
 		nodes = deployment.Nodes
@@ -244,4 +255,58 @@ func runDestroy(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+func runExample(cmd *cobra.Command, args []string) {
+	const example = `
+myctl:
+  image: 10.10.1.12:5000/myctl:latest
+  channel: devops
+nodes:
+- name: devops160
+  external_ip: 10.10.1.160
+  internal_ip: 172.16.88.160
+  os: ubuntu16.04
+  docker: docker17.12.1
+  cluster_type: swarm
+  cluster_name: default
+  role: master
+- name: devops161
+  external_ip: 10.10.1.161
+  internal_ip: 172.16.88.161
+  os: ubuntu16.04
+  docker: docker17.12.1
+  cluster_type: swarm
+  cluster_name: red
+  role: leader
+- name: devops162
+  external_ip: 10.10.1.162
+  internal_ip: 172.16.88.162
+  os: ubuntu16.04
+  docker: docker17.12.1
+  cluster_type: swarm
+  cluster_name: red
+  role: worker
+- name: devops163
+  external_ip: 10.10.1.163
+  internal_ip: 172.16.88.163
+  os: centos7
+  docker: docker17.12.1
+  cluster_type: kubernetes
+  cluster_name: blue
+  role: leader
+  parameters:
+    network: flannel
+    elastic: true
+- name: devops164
+  external_ip: 10.10.1.164
+  internal_ip: 172.16.88.164
+  os: centos7
+  docker: docker17.12.1
+  cluster_type: kubernetes
+  cluster_name: blue
+  role: worker
+`
+
+	fmt.Println(example)
 }

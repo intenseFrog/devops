@@ -1,17 +1,21 @@
 package common
 
 import (
-	"bufio"
-	"os"
+	"io/ioutil"
 	"sort"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 )
 
 type Deployment struct {
-	Nodes []*Node
-	Myctl string
+	Myctl struct {
+		Image   string `yaml:"image"`
+		Channel string `yaml:"channel"`
+	} `yaml:"myctl"`
+	Nodes []*Node `yaml:"nodes"`
 
-	Master *Node
+	master *Node
 }
 
 func (d *Deployment) Create() error {
@@ -34,31 +38,26 @@ func (d *Deployment) Destroy() error {
 	return nil
 }
 
-// TODO: does YAML make more sense?
-func (d *Deployment) Parse(path string) error {
-	file, err := os.Open(path)
+func ParseDeployment(path string) (*Deployment, error) {
+	content, err := ioutil.ReadFile(path)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer file.Close()
 
-	scanner := bufio.NewScanner(file)
+	return parseDeployment(content)
+}
 
-	scanner.Scan()
-	d.Myctl = scanner.Text()
-	d.Nodes = make([]*Node, 0)
+func parseDeployment(data []byte) (*Deployment, error) {
+	d := &Deployment{}
+	if err := yaml.Unmarshal(data, d); err != nil {
+		return nil, err
+	}
 
-	for scanner.Scan() {
-		node := &Node{Deployment: d}
-		if err := node.Parse(scanner.Text()); err != nil {
-			return err
+	for _, n := range d.Nodes {
+		if n.Role == "master" {
+			d.master = n
+			break
 		}
-
-		if node.Role == "master" {
-			d.Master = node
-		}
-
-		d.Nodes = append(d.Nodes, node)
 	}
 
 	sort.Slice(d.Nodes, func(i, j int) bool {
@@ -69,8 +68,12 @@ func (d *Deployment) Parse(path string) error {
 			return false
 		}
 
-		return strings.Compare(iNode.Cluster+iNode.Role, jNode.Cluster+jNode.Role) <= 0
+		iValue := iNode.Cluster + iNode.Role
+		jValue := jNode.Cluster + jNode.Role
+
+		// Use < 0 to make sort in place
+		return strings.Compare(iValue, jValue) < 0
 	})
 
-	return nil
+	return d, nil
 }

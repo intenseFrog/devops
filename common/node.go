@@ -5,26 +5,25 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
-	"strings"
 
 	"text/template"
 )
 
 type Node struct {
-	Deployment *Deployment
-	Pool       string
+	deployment *Deployment
 
 	// Virsh
-	Name       string
-	ExternalIP string
-	InternalIP string
-	OS         string
-	Docker     string
+	Name       string `yaml:"name"`
+	ExternalIP string `yaml:"external_ip"`
+	InternalIP string `yaml:"internal_ip"`
+	OS         string `yaml:"os"`
+	Docker     string `yaml:"docker"`
 
 	//  Chiwen
-	Kind    string
-	Cluster string
-	Role    string
+	Kind    string            `yaml:"cluster_type"`
+	Cluster string            `yaml:"cluster_name"`
+	Role    string            `yaml:"role"`
+	Params  map[string]string `yaml:"parameters,omitempty"`
 }
 
 func (n *Node) ClusterNode() (ClusterNode, error) {
@@ -59,7 +58,7 @@ func (n *Node) QCOW2() string {
 }
 
 func (n *Node) String() string {
-	return fmt.Sprintf("%s %s %s %s %s %s %s", n.Name, n.ExternalIP, n.InternalIP, n.OS, n.Docker, n.Cluster, n.Role)
+	return fmt.Sprintf("%s %s %s %s %s %s %s, %s", n.Name, n.ExternalIP, n.InternalIP, n.OS, n.Docker, n.Cluster, n.Role, n.Params)
 }
 
 func (n *Node) Create() error {
@@ -152,7 +151,7 @@ func (n *Node) Deploy() error {
     	-v /var/run/docker.sock:/var/run/docker.sock \
     	-v chiwen.config:/etc/chiwen \
 		{{.myctl}} deploy \
-		-c devops \
+		-c {{.channel}} \
 		--advertise-ip={{.internalIP}} \
 		--domain={{.externalIP}} \
 		--registry-external={{.externalIP}}
@@ -163,7 +162,8 @@ EOF
 	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
 		"sshPass":    config.SSHPass,
 		"ssh":        n.SSH(),
-		"myctl":      n.Deployment.Myctl,
+		"myctl":      n.deployment.Myctl.Image,
+		"channel":    n.deployment.Myctl.Channel,
 		"internalIP": n.InternalIP,
 		"externalIP": n.ExternalIP,
 	})
@@ -172,24 +172,6 @@ EOF
 	if stderr != "" {
 		fmt.Println(stderr)
 	}
-
-	return nil
-}
-
-func (n *Node) Parse(line string) error {
-	list := strings.Split(line, " ")
-	if len(list) != 8 {
-		return fmt.Errorf("invalid line: %s", line)
-	}
-
-	n.Name = list[0]
-	n.ExternalIP = list[1]
-	n.InternalIP = list[2]
-	n.OS = list[3]
-	n.Docker = list[4]
-	n.Kind = list[5]
-	n.Cluster = list[6]
-	n.Role = list[7]
 
 	return nil
 }
