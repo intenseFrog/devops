@@ -145,12 +145,12 @@ func runList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	arguments := []string{"list", "--all"}
+	listArgs := []string{"list", "--all"}
 	if quiet {
-		arguments = append(arguments, "--name")
+		listArgs = append(listArgs, "--name")
 	}
 
-	output, stderr := common.Output(exec.Command("virsh", arguments...))
+	output, stderr := common.Output(exec.Command("virsh", listArgs...))
 	if stderr != "" {
 		return errors.New(stderr)
 	}

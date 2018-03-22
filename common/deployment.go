@@ -53,13 +53,7 @@ func parseDeployment(data []byte) (*Deployment, error) {
 		return nil, err
 	}
 
-	for _, n := range d.Nodes {
-		if n.Role == "master" {
-			d.master = n
-			break
-		}
-	}
-
+	// sorting
 	sort.Slice(d.Nodes, func(i, j int) bool {
 		iNode, jNode := d.Nodes[i], d.Nodes[j]
 		if iNode.Role == "master" {
@@ -74,6 +68,12 @@ func parseDeployment(data []byte) (*Deployment, error) {
 		// Use < 0 to make sort in place
 		return strings.Compare(iValue, jValue) < 0
 	})
+
+	// post proccesing
+	d.master = d.Nodes[0]
+	for _, n := range d.Nodes {
+		n.deployment = d
+	}
 
 	return d, nil
 }
