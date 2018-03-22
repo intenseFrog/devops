@@ -48,7 +48,6 @@ nodes:
   role: leader
   parameters:
     network: flannel
-    elastic: true
 - name: devops165
   external_ip: 10.10.1.165
   internal_ip: 172.16.88.165
@@ -67,9 +66,9 @@ nodes:
   role: worker
 
 # Another k8s cluster
-- name: devops166
-  external_ip: 10.10.1.166
-  internal_ip: 172.16.88.166
+- name: devops167
+  external_ip: 10.10.1.167
+  internal_ip: 172.16.88.167
   os: centos7
   docker: docker17.12.1
   cluster_type: kubernetes
@@ -77,18 +76,17 @@ nodes:
   role: leader
   parameters:
     network: calico
-    elastic: true
-- name: devops165
-  external_ip: 10.10.1.167
-  internal_ip: 172.16.88.167
+- name: devops168
+  external_ip: 10.10.1.168
+  internal_ip: 172.16.88.168
   os: centos7
   docker: docker17.12.1
   cluster_type: kubernetes
   cluster_name: grey
   role: worker
-- name: devops166
-  external_ip: 10.10.1.168
-  internal_ip: 172.16.88.168
+- name: devops169
+  external_ip: 10.10.1.169
+  internal_ip: 172.16.88.169
   os: centos7
   docker: docker17.12.1
   cluster_type: kubernetes
