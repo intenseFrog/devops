@@ -2,93 +2,79 @@ myctl:
   image: 10.10.1.12:5000/myctl:latest
   channel: devops
 
-nodes:
-# Swarm cluster
-- name: devops160
-  external_ip: 10.10.1.160
-  internal_ip: 172.16.88.160
-  os: ubuntu16.04
-  docker: docker17.12.1
-  cluster_type: swarm
-  cluster_name: default
-  role: master
-- name: devops161
-  external_ip: 10.10.1.161
-  internal_ip: 172.16.88.161
-  os: ubuntu16.04
-  docker: docker17.12.1
-  cluster_type: swarm
-  cluster_name: red
-  role: leader
-- name: devops162
-  external_ip: 10.10.1.162
-  internal_ip: 172.16.88.162
-  os: ubuntu16.04
-  docker: docker17.12.1
-  cluster_type: swarm
-  cluster_name: red
-  role: worker
-- name: devops163
-  external_ip: 10.10.1.163
-  internal_ip: 172.16.88.163
-  os: ubuntu16.04
-  docker: docker17.12.1
-  cluster_type: swarm
-  cluster_name: red
-  role: worker
-
-# k8s cluster
-- name: devops164
-  external_ip: 10.10.1.164
-  internal_ip: 172.16.88.164
-  os: centos7
-  docker: docker17.12.1
-  cluster_type: kubernetes
-  cluster_name: blue
-  role: leader
+clusters:
+- name: default
+  nodes:
+  - name: devops160
+    role: master
+    external_ip: 10.10.1.160
+    internal_ip: 172.16.88.160
+    os: ubuntu16.04
+    docker: docker17.12.1
+- name: red
+  kind: swarm
+  nodes:
+  - name: devops161
+    role: leader
+    external_ip: 10.10.1.161
+    internal_ip: 172.16.88.161
+    os: ubuntu16.04
+    docker: docker17.12.1
+  - name: devops162
+    role: worker
+    external_ip: 10.10.1.162
+    internal_ip: 172.16.88.162
+    os: ubuntu16.04
+    docker: docker17.12.1
+  - name: devops163
+    role: worker
+    external_ip: 10.10.1.163
+    internal_ip: 172.16.88.163
+    os: ubuntu16.04
+    docker: docker17.12.1
+- name: blue
+  kind: kubernetes
   parameters:
     network: flannel
-- name: devops165
-  external_ip: 10.10.1.165
-  internal_ip: 172.16.88.165
-  os: centos7
-  docker: docker17.12.1
-  cluster_type: kubernetes
-  cluster_name: blue
-  role: worker
-- name: devops166
-  external_ip: 10.10.1.166
-  internal_ip: 172.16.88.166
-  os: centos7
-  docker: docker17.12.1
-  cluster_type: kubernetes
-  cluster_name: blue
-  role: worker
-
-# Another k8s cluster
-- name: devops167
-  external_ip: 10.10.1.167
-  internal_ip: 172.16.88.167
-  os: centos7
-  docker: docker17.12.1
-  cluster_type: kubernetes
-  cluster_name: grey
-  role: leader
+  nodes:
+  - name: devops164
+    role: leader
+    external_ip: 10.10.1.164
+    internal_ip: 172.16.88.164
+    os: centos7
+    docker: docker17.12.1
+  - name: devops165
+    role: worker
+    external_ip: 10.10.1.165
+    internal_ip: 172.16.88.165
+    os: ubuntu16.04
+    docker: docker17.12.1
+  - name: devops166
+    role: worker
+    external_ip: 10.10.1.166
+    internal_ip: 172.16.88.166
+    os: centos7
+    docker: docker17.12.1
+- name: gray
+  kind: kubernetes
   parameters:
-    network: calico
-- name: devops168
-  external_ip: 10.10.1.168
-  internal_ip: 172.16.88.168
-  os: centos7
-  docker: docker17.12.1
-  cluster_type: kubernetes
-  cluster_name: grey
-  role: worker
-- name: devops169
-  external_ip: 10.10.1.169
-  internal_ip: 172.16.88.169
-  os: centos7
-  docker: docker17.12.1
-  cluster_type: kubernetes
-  cluster_name: grey
-  role: worker
+    network: flannel
+  nodes:
+  - name: devops167
+    role: leader
+    external_ip: 10.10.1.167
+    internal_ip: 172.16.88.167
+    os: centos7
+    docker: docker17.12.1
+  - name: devops168
+    role: worker
+    external_ip: 10.10.1.168
+    internal_ip: 172.16.88.168
+    os: centos7
+    docker: docker17.12.1
+  - name: devops169
+    role: worker
+    external_ip: 10.10.1.169
+    internal_ip: 172.16.88.169
+    os: centos7
+    docker: docker17.12.1

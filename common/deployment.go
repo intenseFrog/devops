@@ -2,8 +2,6 @@ package common
 
 import (
 	"io/ioutil"
-	"sort"
-	"strings"
 
 	"gopkg.in/yaml.v2"
 )
@@ -13,14 +11,20 @@ type Deployment struct {
 		Image   string `yaml:"image"`
 		Channel string `yaml:"channel"`
 	} `yaml:"myctl"`
-	Nodes []*Node `yaml:"nodes"`
+	Clusters []*Cluster `yaml:"clusters"`
 
 	master *Node
 }
 
+func (d *Deployment) CleanKnownHosts() {
+	for _, c := range d.Clusters {
+		c.CleanKnownHosts()
+	}
+}
+
 func (d *Deployment) Create() error {
-	for _, n := range d.Nodes {
-		if err := n.Create(); err != nil {
+	for _, c := range d.Clusters {
+		if err := c.Create(); err != nil {
 			return err
 		}
 	}
@@ -28,14 +32,65 @@ func (d *Deployment) Create() error {
 	return nil
 }
 
-func (d *Deployment) Destroy() error {
-	for _, n := range d.Nodes {
-		if err := n.Destroy(); err != nil {
+func (d *Deployment) Deploy() error {
+	defer elite("logout")
+
+	for _, c := range d.Clusters {
+		if master := c.normalize(); master != nil {
+			d.master = master
+		}
+	}
+
+	if err := d.master.License(); err != nil {
+		return err
+	}
+
+	if err := d.master.Deploy(); err != nil {
+		return err
+	}
+
+	for _, c := range d.Clusters {
+		if err := c.Deploy(); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func (d *Deployment) Destroy() {
+	for _, c := range d.Clusters {
+		c.Destroy()
+	}
+}
+
+func (d *Deployment) ListNodes() (nodes []*Node) {
+	for _, c := range d.Clusters {
+		nodes = append(nodes, c.Nodes...)
+	}
+
+	return
+}
+
+func (d *Deployment) masterIP() string {
+	return d.master.ExternalIP
+}
+
+func (d *Deployment) myctlChannel() string {
+	return d.Myctl.Channel
+}
+
+func (d *Deployment) myctlImage() string {
+	return d.Myctl.Image
+}
+
+func parseDeployment(data []byte) (*Deployment, error) {
+	d := &Deployment{}
+	if err := yaml.Unmarshal(data, d); err != nil {
+		return nil, err
+	}
+
+	return d, nil
 }
 
 func ParseDeployment(path string) (*Deployment, error) {
@@ -45,35 +100,4 @@ func ParseDeployment(path string) (*Deployment, error) {
 	}
 
 	return parseDeployment(content)
-}
-
-func parseDeployment(data []byte) (*Deployment, error) {
-	d := &Deployment{}
-	if err := yaml.Unmarshal(data, d); err != nil {
-		return nil, err
-	}
-
-	// sorting
-	sort.Slice(d.Nodes, func(i, j int) bool {
-		iNode, jNode := d.Nodes[i], d.Nodes[j]
-		if iNode.Role == "master" {
-			return true
-		} else if jNode.Role == "master" {
-			return false
-		}
-
-		iValue := iNode.Cluster + iNode.Role
-		jValue := jNode.Cluster + jNode.Role
-
-		// Use < 0 to make sort in place
-		return strings.Compare(iValue, jValue) < 0
-	})
-
-	// post proccesing
-	d.master = d.Nodes[0]
-	for _, n := range d.Nodes {
-		n.deployment = d
-	}
-
-	return d, nil
 }

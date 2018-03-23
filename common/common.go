@@ -24,7 +24,21 @@ func Confirm(msg string) bool {
 	return false
 }
 
-func Elite(args ...string) string {
+func Destroy(names []string, yes bool) {
+	msg := fmt.Sprintf("About to remove %s", strings.Join(names, ", "))
+	if !yes && !Confirm(msg) {
+		return
+	}
+
+	for _, name := range names {
+		node := &Node{Name: name}
+		if err := node.Destroy(); err != nil {
+			fmt.Println(err.Error())
+		}
+	}
+}
+
+func elite(args ...string) string {
 	fmt.Printf("%s %s\n", config.Elite, strings.Join(args, " "))
 	stdout, stderr := Output(exec.Command(config.Elite, args...))
 	if stderr != "" {

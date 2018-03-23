@@ -99,42 +99,15 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	for _, node := range deployment.Nodes {
-		if err := node.Create(); err != nil {
-			return err
-		}
+	if err := deployment.Create(); err != nil {
+		return err
 	}
 
-	defer common.Elite("logout")
+	if err := deployment.Deploy(); err != nil {
+		return err
+	}
+
 	// time.Sleep(30 * time.Second)
-
-	for _, node := range deployment.Nodes {
-		var err error
-		switch role := node.Role; role {
-		case "master":
-			fmt.Println("Licensing....")
-			if err = node.License(); err == nil {
-				fmt.Println("Deploying....")
-				err = node.Deploy()
-			}
-		case "leader":
-			fmt.Println("Initializing....")
-			if clusterNode, err := node.ClusterNode(); err == nil {
-				err = clusterNode.Init()
-			}
-		case "worker":
-			fmt.Println("Joining....")
-			if clusterNode, err := node.ClusterNode(); err == nil {
-				err = clusterNode.Join()
-			}
-		default:
-			err = fmt.Errorf("unknown role: %s", role)
-		}
-
-		if err != nil {
-			return err
-		}
-	}
 
 	return nil
 }
@@ -170,13 +143,7 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	for _, node := range deployment.Nodes {
-		if err := node.Create(); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return deployment.Create()
 }
 
 func runCleanKnowHosts(cmd *cobra.Command, args []string) error {
@@ -190,15 +157,14 @@ func runCleanKnowHosts(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	for _, node := range deployment.Nodes {
-		node.CleanKnownHost()
+	for _, c := range deployment.Clusters {
+		c.CleanKnownHosts()
 	}
 
 	return nil
 }
 
 func runDestroy(cmd *cobra.Command, args []string) error {
-	var nodes []*common.Node
 	names := make([]string, 0)
 
 	all, err := cmd.Flags().GetBool("all")
@@ -215,28 +181,21 @@ func runDestroy(cmd *cobra.Command, args []string) error {
 		return errors.New("Cannot specify --all and --file at same time")
 	}
 
-	if all {
+	if path == "" {
+		names = args
+	} else if all {
 		output, stderr := common.Output(exec.Command("virsh", "list", "--all", "--name"))
 		if stderr != "" {
 			return errors.New(stderr)
 		}
 		names = strings.Split(output, "\n")
-		for _, name := range names {
-			nodes = append(nodes, &common.Node{Name: name})
-		}
-	} else if path == "" {
-		names = args
-		for _, name := range names {
-			nodes = append(nodes, &common.Node{Name: name})
-		}
 	} else {
-		deployment, err := common.ParseDeployment(path)
-		if err != nil {
+		if deployment, err := common.ParseDeployment(path); err == nil {
+			for _, n := range deployment.ListNodes() {
+				names = append(names, n.Name)
+			}
+		} else {
 			return err
-		}
-		nodes = deployment.Nodes
-		for _, n := range nodes {
-			names = append(names, n.Name)
 		}
 	}
 
@@ -245,15 +204,7 @@ func runDestroy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	msg := fmt.Sprintf("About to remove %s", strings.Join(names, ", "))
-	if yes || common.Confirm(msg) {
-		for _, node := range nodes {
-			if err := node.Destroy(); err != nil {
-				fmt.Printf("%s removal failed: %s\n", node.Name, err.Error())
-			}
-		}
-	}
-
+	common.Destroy(names, yes)
 	return nil
 }
 
@@ -262,50 +213,60 @@ func runExample(cmd *cobra.Command, args []string) {
 myctl:
   image: 10.10.1.12:5000/myctl:latest
   channel: devops
-nodes:
-- name: devops160
-  external_ip: 10.10.1.160
-  internal_ip: 172.16.88.160
-  os: ubuntu16.04
-  docker: docker17.12.1
-  cluster_type: swarm
-  cluster_name: default
-  role: master
-- name: devops161
-  external_ip: 10.10.1.161
-  internal_ip: 172.16.88.161
-  os: ubuntu16.04
-  docker: docker17.12.1
-  cluster_type: swarm
-  cluster_name: red
-  role: leader
-- name: devops162
-  external_ip: 10.10.1.162
-  internal_ip: 172.16.88.162
-  os: ubuntu16.04
-  docker: docker17.12.1
-  cluster_type: swarm
-  cluster_name: red
-  role: worker
-- name: devops163
-  external_ip: 10.10.1.163
-  internal_ip: 172.16.88.163
-  os: centos7
-  docker: docker17.12.1
-  cluster_type: kubernetes
-  cluster_name: blue
-  role: leader
+  
+clusters:
+- name: default
+  nodes:
+  - name: devops160
+	role: master
+	external_ip: 10.10.1.160
+	internal_ip: 172.16.88.160
+	os: ubuntu16.04
+	docker: docker17.12.1
+- name: red
+  kind: swarm
+  nodes:
+  - name: devops161
+	role: leader
+	external_ip: 10.10.1.161
+	internal_ip: 172.16.88.161
+	os: ubuntu16.04
+	docker: docker17.12.1
+  - name: devops162
+	role: worker
+	external_ip: 10.10.1.162
+	internal_ip: 172.16.88.162
+	os: ubuntu16.04
+	docker: docker17.12.1
+  - name: devops163
+	role: worker
+	external_ip: 10.10.1.163
+	internal_ip: 172.16.88.163
+	os: ubuntu16.04
+	docker: docker17.12.1
+- name: blue
+  kind: kubernetes
   parameters:
-    network: flannel
-    elastic: true
-- name: devops164
-  external_ip: 10.10.1.164
-  internal_ip: 172.16.88.164
-  os: centos7
-  docker: docker17.12.1
-  cluster_type: kubernetes
-  cluster_name: blue
-  role: worker
+	network: flannel
+  nodes:
+  - name: devops164
+	role: leader
+	external_ip: 10.10.1.164
+	internal_ip: 172.16.88.164
+	os: centos7
+	docker: docker17.12.1
+  - name: devops165
+	role: worker
+	external_ip: 10.10.1.165
+	internal_ip: 172.16.88.165
+	os: ubuntu16.04
+	docker: docker17.12.1
+  - name: devops166
+	role: worker
+	external_ip: 10.10.1.166
+	internal_ip: 172.16.88.166
+	os: centos7
+	docker: docker17.12.1
 `
 
 	fmt.Println(example)
