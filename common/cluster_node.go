@@ -8,6 +8,12 @@ import (
 	"text/template"
 )
 
+const templateDeploy = `
+{{.sshPass}} {{.ssh}} << 'EOF'
+	{{.deployCmd}}
+EOF
+`
+
 type clusterNode interface {
 	init() error
 	join() error
@@ -18,28 +24,23 @@ type swarmNode struct {
 }
 
 func (n *swarmNode) init() error {
-	const templateContent = `
-{{.sshPass}} {{.ssh}} << 'EOF'
-	{{.deployCmd}}
-EOF
-	`
-
 	node := n.infraNode
-
-	elite("login", "-u", "admin", "-p", "admin", node.masterIP())
 
 	createArgs := []string{"cluster", "create", node.clusterName(), "--swarm"}
 	for k, v := range node.cluster.Params {
 		createArgs = append(createArgs, "-p", fmt.Sprintf("%s=%s", k, v))
 	}
-	elite(createArgs...)
 
-	elite("cluster", "use", node.clusterName())
+	eliteArgs := &EliteArguments{}
 
-	deployScript := elite("node", "deploy-script", "-q", fmt.Sprintf("--ip=%s", node.InternalIP))
+	eliteArgs.Append(false, createArgs...)
+	eliteArgs.Append(false, "cluster", "use", node.clusterName())
+	eliteArgs.Append(true, "node", "deploy-script", "-q", fmt.Sprintf("--ip=%s", node.InternalIP))
+
+	deployScript := elite(eliteArgs)[0]
 
 	var tmplBuffer bytes.Buffer
-	tmplDeploy, _ := template.New("deploy-script").Parse(templateContent)
+	tmplDeploy, _ := template.New("deploy-script").Parse(templateDeploy)
 	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
 		"sshPass":   config.SSHPass,
 		"ssh":       node.ssh(),
@@ -55,19 +56,20 @@ EOF
 }
 
 func (n *swarmNode) join() error {
-	const templateContent = `
-{{.sshPass}} {{.ssh}} << 'EOF'
-	{{.deployCmd}}
-EOF
-`
+	node := n.infraNode
 
-	deployScript := elite("node", "deploy-script", "-q")
+	eliteArgs := &EliteArguments{}
+
+	eliteArgs.Append(false, "cluster", "use", node.clusterName())
+	eliteArgs.Append(true, "node", "deploy-script", "-q")
+
+	deployScript := elite(eliteArgs)[0]
 
 	var tmplBuffer bytes.Buffer
-	tmplDeploy, _ := template.New("deploy-script").Parse(templateContent)
+	tmplDeploy, _ := template.New("deploy-script").Parse(templateDeploy)
 	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
 		"sshPass":   config.SSHPass,
-		"ssh":       n.infraNode.ssh(),
+		"ssh":       node.ssh(),
 		"deployCmd": deployScript,
 	})
 
@@ -84,28 +86,23 @@ type kubernetesNode struct {
 }
 
 func (n *kubernetesNode) init() error {
-	const templateContent = `
-{{.sshPass}} {{.ssh}} << 'EOF'
-	{{.deployCmd}}
-EOF
-	`
-
 	node := n.infraNode
-
-	elite("login", "-u", "admin", "-p", "admin", node.masterIP())
 
 	createArgs := []string{"cluster", "create", node.clusterName(), "--kubernetes"}
 	for k, v := range node.cluster.Params {
 		createArgs = append(createArgs, "-p", fmt.Sprintf("%s=%s", k, v))
 	}
-	elite(createArgs...)
 
-	elite("cluster", "use", node.clusterName())
+	eliteArgs := &EliteArguments{}
 
-	deployScript := elite("node", "deploy-script", "-q", fmt.Sprintf("--ip=%s", node.InternalIP))
+	eliteArgs.Append(false, createArgs...)
+	eliteArgs.Append(false, "cluster", "use", node.clusterName())
+	eliteArgs.Append(true, "node", "deploy-script", "-q", fmt.Sprintf("--ip=%s", node.InternalIP))
+
+	deployScript := elite(eliteArgs)[0]
 
 	var tmplBuffer bytes.Buffer
-	tmplDeploy, _ := template.New("deploy-script").Parse(templateContent)
+	tmplDeploy, _ := template.New("deploy-script").Parse(templateDeploy)
 	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
 		"sshPass":   config.SSHPass,
 		"ssh":       node.ssh(),
@@ -121,17 +118,16 @@ EOF
 }
 
 func (n *kubernetesNode) join() error {
-	const templateContent = `
-{{.sshPass}} {{.ssh}} << 'EOF'
-	{{.deployCmd}}
-EOF
-`
-
 	node := n.infraNode
 
-	deployScript := elite("node", "deploy-script", "-q", fmt.Sprintf("--ip=%s", node.InternalIP))
+	eliteArgs := &EliteArguments{}
 
-	tmplDeploy, _ := template.New("deploy-script").Parse(templateContent)
+	eliteArgs.Append(false, "cluster", "use", node.clusterName())
+	eliteArgs.Append(true, "node", "deploy-script", "-q", fmt.Sprintf("--ip=%s", node.InternalIP))
+
+	deployScript := elite(eliteArgs)[0]
+
+	tmplDeploy, _ := template.New("deploy-script").Parse(templateDeploy)
 	var tmplBuffer bytes.Buffer
 	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
 		"sshPass":   config.SSHPass,

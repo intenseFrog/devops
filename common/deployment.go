@@ -34,7 +34,7 @@ func (d *Deployment) Create() error {
 }
 
 func (d *Deployment) Deploy() error {
-	defer elite("logout")
+	defer eliteLogout()
 
 	for i := range d.Clusters {
 		cluster := d.Clusters[i]
@@ -54,6 +54,8 @@ func (d *Deployment) Deploy() error {
 	if err := d.master.Deploy(); err != nil {
 		return err
 	}
+
+	eliteLogin(d.master.ExternalIP)
 
 	fmt.Println("Deploying clusters...")
 	for _, c := range d.Clusters {

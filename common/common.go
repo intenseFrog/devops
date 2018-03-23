@@ -39,17 +39,6 @@ func Destroy(names []string, yes bool) {
 	}
 }
 
-func elite(args ...string) string {
-	fmt.Printf("%s %s\n", config.Elite, strings.Join(args, " "))
-	stdout, stderr := Output(exec.Command(config.Elite, args...))
-	if stderr != "" {
-		fmt.Println(stderr)
-	}
-
-	return stdout
-
-}
-
 func PrettyDuration(d time.Duration) string {
 	var result string
 
