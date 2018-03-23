@@ -238,12 +238,6 @@ clusters:
 	internal_ip: 172.16.88.162
 	os: ubuntu16.04
 	docker: docker17.12.1
-  - name: devops163
-	role: worker
-	external_ip: 10.10.1.163
-	internal_ip: 172.16.88.163
-	os: ubuntu16.04
-	docker: docker17.12.1
 - name: blue
   kind: kubernetes
   parameters:
@@ -260,12 +254,6 @@ clusters:
 	external_ip: 10.10.1.165
 	internal_ip: 172.16.88.165
 	os: ubuntu16.04
-	docker: docker17.12.1
-  - name: devops166
-	role: worker
-	external_ip: 10.10.1.166
-	internal_ip: 172.16.88.166
-	os: centos7
 	docker: docker17.12.1
 `
 
