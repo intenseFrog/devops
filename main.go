@@ -88,6 +88,38 @@ func main() {
 	}
 }
 
+func runCleanKnowHosts(cmd *cobra.Command, args []string) error {
+	path, err := cmd.Flags().GetString("file")
+	if err != nil {
+		return err
+	}
+
+	deployment, err := common.ParseDeployment(path)
+	if err != nil {
+		return err
+	}
+
+	for _, c := range deployment.Clusters {
+		c.CleanKnownHosts()
+	}
+
+	return nil
+}
+
+func runCreate(cmd *cobra.Command, args []string) error {
+	path, err := cmd.Flags().GetString("file")
+	if err != nil {
+		return err
+	}
+
+	deployment, err := common.ParseDeployment(path)
+	if err != nil {
+		return err
+	}
+
+	return deployment.Create()
+}
+
 func runDeploy(cmd *cobra.Command, args []string) error {
 	path, err := cmd.Flags().GetString("file")
 	if err != nil {
@@ -108,58 +140,6 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 	}
 
 	// time.Sleep(30 * time.Second)
-
-	return nil
-}
-
-func runList(cmd *cobra.Command, args []string) error {
-	quiet, err := cmd.Flags().GetBool("quiet")
-	if err != nil {
-		return err
-	}
-
-	listArgs := []string{"list", "--all"}
-	if quiet {
-		listArgs = append(listArgs, "--name")
-	}
-
-	output, stderr := common.Output(exec.Command("virsh", listArgs...))
-	if stderr != "" {
-		return errors.New(stderr)
-	}
-
-	fmt.Println(output)
-	return nil
-}
-
-func runCreate(cmd *cobra.Command, args []string) error {
-	path, err := cmd.Flags().GetString("file")
-	if err != nil {
-		return err
-	}
-
-	deployment, err := common.ParseDeployment(path)
-	if err != nil {
-		return err
-	}
-
-	return deployment.Create()
-}
-
-func runCleanKnowHosts(cmd *cobra.Command, args []string) error {
-	path, err := cmd.Flags().GetString("file")
-	if err != nil {
-		return err
-	}
-
-	deployment, err := common.ParseDeployment(path)
-	if err != nil {
-		return err
-	}
-
-	for _, c := range deployment.Clusters {
-		c.CleanKnownHosts()
-	}
 
 	return nil
 }
@@ -205,6 +185,26 @@ func runDestroy(cmd *cobra.Command, args []string) error {
 	}
 
 	common.Destroy(names, yes)
+	return nil
+}
+
+func runList(cmd *cobra.Command, args []string) error {
+	quiet, err := cmd.Flags().GetBool("quiet")
+	if err != nil {
+		return err
+	}
+
+	listArgs := []string{"list", "--all"}
+	if quiet {
+		listArgs = append(listArgs, "--name")
+	}
+
+	output, stderr := common.Output(exec.Command("virsh", listArgs...))
+	if stderr != "" {
+		return errors.New(stderr)
+	}
+
+	fmt.Println(output)
 	return nil
 }
 

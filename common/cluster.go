@@ -108,16 +108,21 @@ func (c *Cluster) myctlChannel() string {
 }
 
 // Sort nodes in the order of role: master > leader > worker
-// assign leader
+// assign cluster to each node
 // return master if found
 func (c *Cluster) normalize() (master *Node) {
+	for i, node := range c.Nodes {
+		if node.Role == "master" {
+			master = c.Nodes[i]
+		}
+		node.cluster = c
+	}
+
 	sort.Slice(c.Nodes, func(i, j int) bool {
 		iNode, jNode := c.Nodes[i], c.Nodes[j]
 		if iNode.Role == "master" {
-			master = iNode
 			return true
 		} else if jNode.Role == "master" {
-			master = jNode
 			return false
 		}
 

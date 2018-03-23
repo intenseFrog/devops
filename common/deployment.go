@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"gopkg.in/yaml.v2"
@@ -35,20 +36,26 @@ func (d *Deployment) Create() error {
 func (d *Deployment) Deploy() error {
 	defer elite("logout")
 
-	for _, c := range d.Clusters {
-		if master := c.normalize(); master != nil {
+	for i := range d.Clusters {
+		cluster := d.Clusters[i]
+		cluster.deployment = d
+
+		if master := cluster.normalize(); master != nil {
 			d.master = master
 		}
 	}
 
+	fmt.Println("Licensing...")
 	if err := d.master.License(); err != nil {
 		return err
 	}
 
+	fmt.Println("Deploying master...")
 	if err := d.master.Deploy(); err != nil {
 		return err
 	}
 
+	fmt.Println("Deploying clusters...")
 	for _, c := range d.Clusters {
 		if err := c.Deploy(); err != nil {
 			return err
