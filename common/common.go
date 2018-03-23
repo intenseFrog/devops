@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 func Confirm(msg string) bool {
@@ -47,6 +48,33 @@ func elite(args ...string) string {
 
 	return stdout
 
+}
+
+func PrettyDuration(d time.Duration) string {
+	var result string
+
+	total := int(d.Seconds())
+	units := []string{"s", "m"}
+	base := 60
+
+	for i := range units {
+		if total < 60 {
+			return fmt.Sprintf("%d%s%s", total, units[i], result)
+		}
+
+		remainder := total % base
+		if remainder != 0 {
+			result = fmt.Sprintf("%d%s%s", remainder, units[i], result)
+		}
+
+		total = total / base
+	}
+
+	if total != 0 {
+		result = fmt.Sprintf("%dh%s", total, result)
+	}
+
+	return result
 }
 
 // CmdOutput: gives stdout, stderr, error

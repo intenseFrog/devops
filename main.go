@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"mydevops/common"
 
@@ -76,12 +77,22 @@ func main() {
 	}
 	listCmd.Flags().BoolP("quiet", "q", false, "List names only")
 
+	parseCmd := &cobra.Command{
+		Use:    "parse",
+		Hidden: true,
+		RunE:   runParse,
+	}
+	parseCmd.Flags().StringP("file", "f", "", "Specify the file path")
+
 	RootCmd.AddCommand(cleanKnowHosts)
 	RootCmd.AddCommand(createCmd)
 	RootCmd.AddCommand(deployCmd)
 	RootCmd.AddCommand(exampleCmd)
 	RootCmd.AddCommand(listCmd)
 	RootCmd.AddCommand(destroyCmd)
+
+	// back door
+	RootCmd.AddCommand(parseCmd)
 
 	if err := RootCmd.Execute(); err != nil {
 		os.Exit(-1)
@@ -107,6 +118,8 @@ func runCleanKnowHosts(cmd *cobra.Command, args []string) error {
 }
 
 func runCreate(cmd *cobra.Command, args []string) error {
+	start := time.Now()
+
 	path, err := cmd.Flags().GetString("file")
 	if err != nil {
 		return err
@@ -117,10 +130,18 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	return deployment.Create()
+	if err := deployment.Create(); err != nil {
+		return err
+	}
+
+	fmt.Printf("Done: %s\n", common.PrettyDuration(time.Now().Sub(start)))
+
+	return nil
 }
 
 func runDeploy(cmd *cobra.Command, args []string) error {
+	start := time.Now()
+
 	path, err := cmd.Flags().GetString("file")
 	if err != nil {
 		return err
@@ -139,7 +160,7 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// time.Sleep(30 * time.Second)
+	fmt.Printf("Done: %s\n", common.PrettyDuration(time.Now().Sub(start)))
 
 	return nil
 }
@@ -258,4 +279,29 @@ clusters:
 `
 
 	fmt.Println(example)
+}
+
+func runParse(cmd *cobra.Command, args []string) error {
+	path, err := cmd.Flags().GetString("file")
+	if err != nil {
+		return err
+	}
+
+	deployment, err := common.ParseDeployment(path)
+	if err != nil {
+		return err
+	}
+
+	for i := range deployment.Clusters {
+		cluster := deployment.Clusters[i]
+		cluster.Normalize()
+	}
+
+	for _, c := range deployment.Clusters {
+		for _, node := range c.Nodes {
+			fmt.Println(node.String())
+		}
+	}
+
+	return nil
 }

@@ -40,7 +40,7 @@ func (d *Deployment) Deploy() error {
 		cluster := d.Clusters[i]
 		cluster.deployment = d
 
-		if master := cluster.normalize(); master != nil {
+		if master := cluster.Normalize(); master != nil {
 			d.master = master
 		}
 	}

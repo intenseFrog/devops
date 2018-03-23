@@ -110,7 +110,7 @@ func (c *Cluster) myctlChannel() string {
 // Sort nodes in the order of role: master > leader > worker
 // assign cluster to each node
 // return master if found
-func (c *Cluster) normalize() (master *Node) {
+func (c *Cluster) Normalize() (master *Node) {
 	for i, node := range c.Nodes {
 		if node.Role == "master" {
 			master = c.Nodes[i]

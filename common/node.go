@@ -170,7 +170,7 @@ func (n *Node) ssh() string {
 	return "ssh -o StrictHostKeyChecking=no root@" + n.ExternalIP
 }
 
-func (n *Node) string() string {
+func (n *Node) String() string {
 	return fmt.Sprintf("%s %s %s %s %s %s %s, %s", n.Name, n.ExternalIP, n.InternalIP, n.OS, n.Docker, n.cluster.Name, n.Role, n.cluster.Params)
 }
 
