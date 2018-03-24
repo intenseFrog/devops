@@ -42,6 +42,7 @@ func (n *Node) CleanKnownHost() {
 }
 
 func (n *Node) Create() error {
+	fmt.Printf("Creating %s...\n", n.Name)
 	// /devops/create_vms_2d.sh developer183 "br0#10.10.1.183#255.255.255.0#10.10.1.254#8.8.8.8;br0#172.16.88.183#255.255.255.0" 8 64 0 /devops/base_images/ubuntu16.04-docker17.12.1.qcow2
 	network := fmt.Sprintf("br0#%s#255.255.255.0#10.10.1.254#8.8.8.8;br0#%s#255.255.255.0", n.ExternalIP, n.InternalIP)
 	cpu, memory, disk := "8", "64", "0"
@@ -90,6 +91,7 @@ EOF
 }
 
 func (n *Node) Destroy() error {
+	fmt.Printf("Destroying %s...\n", n.Name)
 	const templateContent = `
 virsh destroy {{.name}}
 virsh undefine {{.name}}
