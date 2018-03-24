@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 	"sort"
+	"sync"
 )
 
 type Cluster struct {
@@ -32,44 +33,69 @@ func (c *Cluster) Create() error {
 	return nil
 }
 
-func (c *Cluster) deployDefault() error {
-	for _, node := range c.Nodes[1:] {
-		if err := node.swarmNode().join(); err != nil {
-			return err
-		}
+func (c *Cluster) deployDefault() (err error) {
+	if len(c.Nodes) == 1 {
+		return
 	}
 
-	return nil
+	var wg sync.WaitGroup
+	wg.Add(len(c.Nodes) - 1)
+
+	for _, node := range c.Nodes[1:] {
+		go func(n *Node) {
+			defer wg.Done()
+			if tmpErr := n.swarmNode().join(); tmpErr != nil {
+				err = tmpErr
+			}
+		}(node)
+	}
+
+	wg.Wait()
+	return
 }
 
-func (c *Cluster) deployKubernetes() error {
+func (c *Cluster) deployKubernetes() (err error) {
 	leader := c.Nodes[0].kubernetesNode()
-	if err := leader.init(); err != nil {
-		return err
+	if err = leader.init(); err != nil {
+		return
 	}
+
+	var wg sync.WaitGroup
+	wg.Add(len(c.Nodes) - 1)
 
 	for _, node := range c.Nodes[1:] {
-		if err := node.kubernetesNode().join(); err != nil {
-			return err
-		}
+		go func(n *Node) {
+			defer wg.Done()
+			if tmpErr := n.kubernetesNode().join(); tmpErr != nil {
+				err = tmpErr
+			}
+		}(node)
 	}
 
-	return nil
+	wg.Wait()
+	return
 }
 
-func (c *Cluster) deploySwarm() error {
+func (c *Cluster) deploySwarm() (err error) {
 	leader := c.Nodes[0].swarmNode()
-	if err := leader.init(); err != nil {
-		return err
+	if err = leader.init(); err != nil {
+		return
 	}
+
+	var wg sync.WaitGroup
+	wg.Add(len(c.Nodes) - 1)
 
 	for _, node := range c.Nodes[1:] {
-		if err := node.swarmNode().join(); err != nil {
-			return err
-		}
+		go func(n *Node) {
+			defer wg.Done()
+			if tmpErr := n.swarmNode().join(); tmpErr != nil {
+				err = tmpErr
+			}
+		}(node)
 	}
 
-	return nil
+	wg.Wait()
+	return
 }
 
 func (c *Cluster) Deploy() (err error) {

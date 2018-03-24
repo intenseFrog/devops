@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 	"io/ioutil"
+	"sync"
 
 	"gopkg.in/yaml.v2"
 )
@@ -33,7 +34,7 @@ func (d *Deployment) Create() error {
 	return nil
 }
 
-func (d *Deployment) Deploy() error {
+func (d *Deployment) Deploy() (err error) {
 	defer eliteLogout()
 
 	for i := range d.Clusters {
@@ -46,25 +47,33 @@ func (d *Deployment) Deploy() error {
 	}
 
 	fmt.Println("Licensing...")
-	if err := d.master.License(); err != nil {
+	if err = d.master.License(); err != nil {
 		return err
 	}
 
 	fmt.Println("Deploying master...")
-	if err := d.master.Deploy(); err != nil {
+	if err = d.master.Deploy(); err != nil {
 		return err
 	}
 
 	eliteLogin(d.master.ExternalIP)
 
 	fmt.Println("Deploying clusters...")
-	for _, c := range d.Clusters {
-		if err := c.Deploy(); err != nil {
-			return err
-		}
+
+	var wg sync.WaitGroup
+	wg.Add(len(d.Clusters))
+
+	for _, cluster := range d.Clusters {
+		go func(c *Cluster) {
+			defer wg.Done()
+			if tmpErr := c.Deploy(); tmpErr != nil {
+				err = tmpErr
+			}
+		}(cluster)
 	}
 
-	return nil
+	wg.Wait()
+	return
 }
 
 func (d *Deployment) Destroy() {
