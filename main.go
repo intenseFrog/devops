@@ -166,7 +166,7 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 }
 
 func runDestroy(cmd *cobra.Command, args []string) error {
-	names := make([]string, 0)
+	var names []string
 
 	all, err := cmd.Flags().GetBool("all")
 	if err != nil {
@@ -182,15 +182,7 @@ func runDestroy(cmd *cobra.Command, args []string) error {
 		return errors.New("Cannot specify --all and --file at same time")
 	}
 
-	if path == "" {
-		names = args
-	} else if all {
-		output, stderr := common.Output(exec.Command("virsh", "list", "--all", "--name"))
-		if stderr != "" {
-			return errors.New(stderr)
-		}
-		names = strings.Split(output, "\n")
-	} else {
+	if path != "" {
 		if deployment, err := common.ParseDeployment(path); err == nil {
 			for _, n := range deployment.ListNodes() {
 				names = append(names, n.Name)
@@ -198,6 +190,14 @@ func runDestroy(cmd *cobra.Command, args []string) error {
 		} else {
 			return err
 		}
+	} else if all {
+		output, stderr := common.Output(exec.Command("virsh", "list", "--all", "--name"))
+		if stderr != "" {
+			return errors.New(stderr)
+		}
+		names = strings.Split(output, "\n")
+	} else {
+		names = args
 	}
 
 	yes, err := cmd.Flags().GetBool("yes")
