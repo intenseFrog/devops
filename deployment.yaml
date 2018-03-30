@@ -36,29 +36,31 @@ clusters:
   kind: kubernetes
   parameters:
     network: flannel
+    elastic: on
   nodes:
   - name: devops164
     role: leader
     external_ip: 10.10.1.164
     internal_ip: 172.16.88.164
-    os: centos7
+    os: ubuntu16.04
     docker: docker17.12.1
   - name: devops165
     role: worker
     external_ip: 10.10.1.165
     internal_ip: 172.16.88.165
-    os: centos7
+    os: ubuntu16.04
     docker: docker17.12.1
   - name: devops166
     role: worker
     external_ip: 10.10.1.166
     internal_ip: 172.16.88.166
-    os: centos7
+    os: ubuntu16.04
     docker: docker17.12.1
 - name: gray
   kind: kubernetes
   parameters:
-    network: flannel
+    network: calico
+    elastic: on
   nodes:
   - name: devops167
     role: leader

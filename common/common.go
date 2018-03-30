@@ -96,3 +96,7 @@ func Output(cmd *exec.Cmd) (outStr string, errStr string) {
 
 	return
 }
+
+func RemoveKnownHosts() {
+	Output(exec.Command("rm", "~/.ssh/known_hosts"))
+}

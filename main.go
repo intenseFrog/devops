@@ -156,6 +156,8 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	common.RemoveKnownHosts()
+
 	if err := deployment.Deploy(); err != nil {
 		return err
 	}
