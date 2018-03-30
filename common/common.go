@@ -66,6 +66,10 @@ func PrettyDuration(d time.Duration) string {
 	return result
 }
 
+func PrintDone(start time.Time) {
+	fmt.Printf("Done: %s\n", PrettyDuration(time.Now().Sub(start)))
+}
+
 // CmdOutput: gives stdout, stderr, error
 func Output(cmd *exec.Cmd) (outStr string, errStr string) {
 	stdout, err := cmd.StdoutPipe()

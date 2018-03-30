@@ -134,8 +134,7 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("Done: %s\n", common.PrettyDuration(time.Now().Sub(start)))
-
+	common.PrintDone(start)
 	return nil
 }
 
@@ -162,8 +161,7 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("Done: %s\n", common.PrettyDuration(time.Now().Sub(start)))
-
+	common.PrintDone(start)
 	return nil
 }
 
@@ -265,6 +263,7 @@ clusters:
   kind: kubernetes
   parameters:
 	network: flannel
+	elastic: on
   nodes:
   - name: devops164
 	role: leader
