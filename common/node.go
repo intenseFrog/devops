@@ -11,11 +11,14 @@ import (
 
 type Node struct {
 	// Virsh
-	Name       string `yaml:"name"`
-	ExternalIP string `yaml:"external_ip"`
-	InternalIP string `yaml:"internal_ip"`
-	OS         string `yaml:"os"`
-	Docker     string `yaml:"docker"`
+	Name       string  `yaml:"name"`
+	ExternalIP string  `yaml:"external_ip"`
+	InternalIP string  `yaml:"internal_ip"`
+	OS         string  `yaml:"os"`
+	Docker     string  `yaml:"docker"`
+	CPU        *string `yaml:"cpu,omitempty"`
+	Memory     *string `yaml:"mem,omitempty"`
+	Disk       *string `yaml:"disk,omitempty"`
 
 	//  Chiwen
 	Role string `yaml:"role"`
@@ -45,9 +48,21 @@ func (n *Node) Create() error {
 	fmt.Printf("Creating %s...\n", n.Name)
 	// /devops/create_vms_2d.sh developer183 "br0#10.10.1.183#255.255.255.0#10.10.1.254#8.8.8.8;br0#172.16.88.183#255.255.255.0" 8 64 0 /devops/base_images/ubuntu16.04-docker17.12.1.qcow2
 	network := fmt.Sprintf("br0#%s#255.255.255.0#10.10.1.254#8.8.8.8;br0#%s#255.255.255.0", n.ExternalIP, n.InternalIP)
-	cpu, memory, disk := "4", "16", "0"
-	imagePath := fmt.Sprintf("%s/%s", config.DirBaseImages, n.image())
 
+	cpu, memory, disk := "4", "16", "0"
+	if n.CPU != nil {
+		cpu = *n.CPU
+	}
+
+	if n.Memory != nil {
+		memory = *n.Memory
+	}
+
+	if n.Disk != nil {
+		disk = *n.Disk
+	}
+
+	imagePath := fmt.Sprintf("%s/%s", config.DirBaseImages, n.image())
 	out, stderr := Output(exec.Command(config.Create, n.Name, network, cpu, memory, disk, imagePath))
 	if stderr != "" {
 		return errors.New(stderr)
