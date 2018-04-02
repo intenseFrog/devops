@@ -12,6 +12,7 @@ type Deployment struct {
 	Myctl struct {
 		Image   string `yaml:"image"`
 		Channel string `yaml:"channel"`
+		Web     string `yaml:"web"`
 	} `yaml:"myctl"`
 	Clusters []*Cluster `yaml:"clusters"`
 
@@ -100,6 +101,10 @@ func (d *Deployment) myctlChannel() string {
 
 func (d *Deployment) myctlImage() string {
 	return d.Myctl.Image
+}
+
+func (d *Deployment) myctlWeb() string {
+	return d.Myctl.Web
 }
 
 func parseDeployment(data []byte) (*Deployment, error) {

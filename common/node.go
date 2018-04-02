@@ -45,7 +45,7 @@ func (n *Node) Create() error {
 	fmt.Printf("Creating %s...\n", n.Name)
 	// /devops/create_vms_2d.sh developer183 "br0#10.10.1.183#255.255.255.0#10.10.1.254#8.8.8.8;br0#172.16.88.183#255.255.255.0" 8 64 0 /devops/base_images/ubuntu16.04-docker17.12.1.qcow2
 	network := fmt.Sprintf("br0#%s#255.255.255.0#10.10.1.254#8.8.8.8;br0#%s#255.255.255.0", n.ExternalIP, n.InternalIP)
-	cpu, memory, disk := "8", "64", "0"
+	cpu, memory, disk := "4", "16", "0"
 	imagePath := fmt.Sprintf("%s/%s", config.DirBaseImages, n.image())
 
 	out, stderr := Output(exec.Command(config.Create, n.Name, network, cpu, memory, disk, imagePath))
@@ -85,6 +85,29 @@ EOF
 	_, stderr := Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
 	if stderr != "" {
 		fmt.Println(stderr)
+	}
+
+	if web := n.cluster.myctlWeb(); web != "" {
+		const webTemplate = `
+{{.sshPass}} {{.ssh}} << 'EOF'
+	docker pull {{.web}}
+	docker run \
+		-v chiwen.web:/data \
+		{{.web}}
+EOF
+`
+		tmplWeb, _ := template.New("web").Parse(webTemplate)
+		var webBuffer bytes.Buffer
+		tmplWeb.Execute(&webBuffer, &map[string]interface{}{
+			"sshPass": config.SSHPass,
+			"ssh":     n.ssh(),
+			"web":     n.cluster.myctlWeb(),
+		})
+
+		_, stderr := Output(exec.Command("/bin/bash", "-c", webBuffer.String()))
+		if stderr != "" {
+			fmt.Println(stderr)
+		}
 	}
 
 	return nil

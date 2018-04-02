@@ -125,12 +125,16 @@ func (c *Cluster) masterIP() string {
 	return c.deployment.masterIP()
 }
 
+func (c *Cluster) myctlChannel() string {
+	return c.deployment.myctlChannel()
+}
+
 func (c *Cluster) myctlImage() string {
 	return c.deployment.myctlImage()
 }
 
-func (c *Cluster) myctlChannel() string {
-	return c.deployment.myctlChannel()
+func (c *Cluster) myctlWeb() string {
+	return c.deployment.myctlWeb()
 }
 
 // Sort nodes in the order of role: master > leader > worker
