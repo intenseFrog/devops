@@ -151,6 +151,12 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	var names []string
+	for _, n := range deployment.ListNodes() {
+		names = append(names, n.Name)
+	}
+	common.Destroy(names, true)
+
 	if err := deployment.Create(); err != nil {
 		return err
 	}
