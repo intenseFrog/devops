@@ -1,6 +1,7 @@
 package common
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"sync"
@@ -19,6 +20,26 @@ type Deployment struct {
 	master *Node
 }
 
+func (d *Deployment) setMaster() {
+	for i := range d.Clusters {
+		cluster := d.Clusters[i]
+		cluster.deployment = d
+
+		if master := cluster.Normalize(); master != nil {
+			d.master = master
+		}
+	}
+}
+
+func (d *Deployment) License() error {
+	if d.master == nil {
+		return errors.New("master not set, skip licensing")
+	}
+
+	fmt.Println("Licensing...")
+	return d.master.License()
+}
+
 func (d *Deployment) CleanKnownHosts() {
 	for _, c := range d.Clusters {
 		c.CleanKnownHosts()
@@ -32,24 +53,20 @@ func (d *Deployment) Create() error {
 		}
 	}
 
+	d.setMaster()
+	if err := d.License(); err != nil {
+		fmt.Printf("Failed licensing: %s\n", err.Error())
+	}
+
 	return nil
 }
 
 func (d *Deployment) Deploy() (err error) {
 	defer eliteLogout()
 
-	for i := range d.Clusters {
-		cluster := d.Clusters[i]
-		cluster.deployment = d
-
-		if master := cluster.Normalize(); master != nil {
-			d.master = master
-		}
-	}
-
-	fmt.Println("Licensing...")
-	if err = d.master.License(); err != nil {
-		return err
+	d.setMaster()
+	if err = d.License(); err != nil {
+		fmt.Printf("Failed licensing: %s\n", err.Error())
 	}
 
 	fmt.Println("Deploying master...")
