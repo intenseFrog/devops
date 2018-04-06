@@ -58,8 +58,14 @@ func (n *swarmNode) init() error {
 func (n *swarmNode) join() error {
 	node := n.infraNode
 
+	createArgs := []string{"cluster", "create", node.clusterName(), "--swarm"}
+	for k, v := range node.cluster.Params {
+		createArgs = append(createArgs, "-p", fmt.Sprintf("%s=%s", k, v))
+	}
+
 	eliteArgs := &EliteArguments{}
 
+	eliteArgs.Append(false, createArgs...)
 	eliteArgs.Append(false, "cluster", "use", node.clusterName())
 	eliteArgs.Append(true, "node", "deploy-script", "-q")
 
