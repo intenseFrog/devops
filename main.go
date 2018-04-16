@@ -84,12 +84,22 @@ func main() {
 	}
 	parseCmd.Flags().StringP("file", "f", "", "Specify the file path")
 
+	updateCmd := &cobra.Command{
+		Use:   "update",
+		Short: "update a cluster",
+		Long:  "update a cluster",
+		RunE:  runUpdate,
+	}
+	updateCmd.Flags().StringP("file", "f", "", "Specify the file path")
+	updateCmd.MarkFlagRequired("file")
+
 	RootCmd.AddCommand(cleanKnowHosts)
 	RootCmd.AddCommand(createCmd)
 	RootCmd.AddCommand(deployCmd)
 	RootCmd.AddCommand(exampleCmd)
 	RootCmd.AddCommand(listCmd)
 	RootCmd.AddCommand(destroyCmd)
+	RootCmd.AddCommand(updateCmd)
 
 	// back door
 	RootCmd.AddCommand(parseCmd)
@@ -212,6 +222,27 @@ func runDestroy(cmd *cobra.Command, args []string) error {
 	}
 
 	common.Destroy(names, yes)
+	return nil
+}
+
+func runUpdate(cmd *cobra.Command, args []string) error {
+	start := time.Now()
+
+	path, err := cmd.Flags().GetString("file")
+	if err != nil {
+		return err
+	}
+
+	deployment, err := common.ParseDeployment(path)
+	if err != nil {
+		return err
+	}
+
+	if err := deployment.Update(); err != nil {
+		return err
+	}
+
+	common.PrintDone(start)
 	return nil
 }
 

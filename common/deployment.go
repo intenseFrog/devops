@@ -61,6 +61,17 @@ func (d *Deployment) Create() error {
 	return nil
 }
 
+func (d *Deployment) Update() error {
+	d.setMaster()
+
+	fmt.Println("Updating master...")
+	if err := d.master.Deploy(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (d *Deployment) Deploy() (err error) {
 	defer eliteLogout()
 

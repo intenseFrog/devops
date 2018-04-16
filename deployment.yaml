@@ -13,6 +13,8 @@ clusters:
     docker: docker17.12.1
 - name: red
   kind: swarm
+  parmameters:
+    internal.network.cidr: 172.168.88.0/24
   nodes:
   - name: devops161
     role: leader
@@ -37,6 +39,7 @@ clusters:
   parameters:
     network: flannel
     elastic: on
+    internal.network.cidr: 172.168.88.0/24
   nodes:
   - name: devops164
     role: leader
@@ -61,6 +64,7 @@ clusters:
   parameters:
     network: calico
     elastic: on
+    internal.network.cidr: 172.168.88.0/24
   nodes:
   - name: devops167
     role: leader
