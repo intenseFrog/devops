@@ -53,7 +53,6 @@ func (d *Deployment) Create() error {
 		}
 	}
 
-	d.setMaster()
 	if err := d.License(); err != nil {
 		fmt.Printf("Failed licensing: %s\n", err.Error())
 	}
@@ -62,8 +61,6 @@ func (d *Deployment) Create() error {
 }
 
 func (d *Deployment) Update() error {
-	d.setMaster()
-
 	fmt.Println("Updating master...")
 	if err := d.master.Deploy(); err != nil {
 		return err
@@ -75,7 +72,6 @@ func (d *Deployment) Update() error {
 func (d *Deployment) Deploy() (err error) {
 	defer eliteLogout()
 
-	d.setMaster()
 	if err = d.License(); err != nil {
 		fmt.Printf("Failed licensing: %s\n", err.Error())
 	}
@@ -141,6 +137,7 @@ func parseDeployment(data []byte) (*Deployment, error) {
 		return nil, err
 	}
 
+	d.setMaster()
 	return d, nil
 }
 

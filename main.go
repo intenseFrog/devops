@@ -69,6 +69,13 @@ func main() {
 	destroyCmd.Flags().Bool("all", false, "Remove all the machines available")
 	// destroyCmd.Flags().Boo("file", "f", "", "Specify the file path")
 
+	licenseCmd := &cobra.Command{
+		Use:   "license",
+		Short: "license a node",
+		RunE:  runLicense,
+	}
+	licenseCmd.Flags().StringP("file", "f", "", "Specify the file path")
+
 	listCmd := &cobra.Command{
 		Use:   "list",
 		Short: "list nodes",
@@ -97,6 +104,7 @@ func main() {
 	RootCmd.AddCommand(createCmd)
 	RootCmd.AddCommand(deployCmd)
 	RootCmd.AddCommand(exampleCmd)
+	RootCmd.AddCommand(licenseCmd)
 	RootCmd.AddCommand(listCmd)
 	RootCmd.AddCommand(destroyCmd)
 	RootCmd.AddCommand(updateCmd)
@@ -244,6 +252,20 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 
 	common.PrintDone(start)
 	return nil
+}
+
+func runLicense(cmd *cobra.Command, args []string) error {
+	path, err := cmd.Flags().GetString("file")
+	if err != nil {
+		return err
+	}
+
+	deploy, err := common.ParseDeployment(path)
+	if err == nil {
+		return err
+	}
+
+	return deploy.License()
 }
 
 func runList(cmd *cobra.Command, args []string) error {

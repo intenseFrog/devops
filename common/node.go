@@ -49,7 +49,7 @@ func (n *Node) Create() error {
 	// /devops/create_vms_2d.sh developer183 "br0#10.10.1.183#255.255.255.0#10.10.1.254#8.8.8.8;br0#172.16.88.183#255.255.255.0" 8 64 0 /devops/base_images/ubuntu16.04-docker17.12.1.qcow2
 	network := fmt.Sprintf("br0#%s#255.255.255.0#10.10.1.254#8.8.8.8;br0#%s#255.255.255.0", n.ExternalIP, n.InternalIP)
 
-	cpu, memory, disk := "4", "16", "0"
+	cpu, memory, disk := "4", "6", "0"
 	if n.CPU != nil {
 		cpu = *n.CPU
 	}
