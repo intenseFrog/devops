@@ -9,7 +9,7 @@ import (
 )
 
 const templateDeploy = `
-{{.sshPass}} {{.ssh}} << 'EOF'
+{{.ssh}} << 'EOF'
 	{{.deployCmd}}
 EOF
 `
@@ -42,7 +42,6 @@ func (n *swarmNode) init() error {
 	var tmplBuffer bytes.Buffer
 	tmplDeploy, _ := template.New("deploy-script").Parse(templateDeploy)
 	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
-		"sshPass":   config.SSHPass,
 		"ssh":       node.ssh(),
 		"deployCmd": deployScript,
 	})
@@ -74,7 +73,6 @@ func (n *swarmNode) join() error {
 	var tmplBuffer bytes.Buffer
 	tmplDeploy, _ := template.New("deploy-script").Parse(templateDeploy)
 	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
-		"sshPass":   config.SSHPass,
 		"ssh":       node.ssh(),
 		"deployCmd": deployScript,
 	})
@@ -110,7 +108,6 @@ func (n *kubernetesNode) init() error {
 	var tmplBuffer bytes.Buffer
 	tmplDeploy, _ := template.New("deploy-script").Parse(templateDeploy)
 	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
-		"sshPass":   config.SSHPass,
 		"ssh":       node.ssh(),
 		"deployCmd": deployScript,
 	})
@@ -136,7 +133,6 @@ func (n *kubernetesNode) join() error {
 	tmplDeploy, _ := template.New("deploy-script").Parse(templateDeploy)
 	var tmplBuffer bytes.Buffer
 	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
-		"sshPass":   config.SSHPass,
 		"ssh":       n.infraNode.ssh(),
 		"deployCmd": deployScript,
 	})

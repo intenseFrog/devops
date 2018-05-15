@@ -47,11 +47,18 @@ func (d *Deployment) CleanKnownHosts() {
 }
 
 func (d *Deployment) Create() error {
-	for _, c := range d.Clusters {
-		if err := c.Create(); err != nil {
-			return err
-		}
+	var wg sync.WaitGroup
+	wg.Add(len(d.ListNodes()))
+
+	for _, n := range d.ListNodes() {
+		go func(n *Node) {
+			defer wg.Done()
+			if err := n.Create(); err != nil {
+				panic(err)
+			}
+		}(n)
 	}
+	wg.Wait()
 
 	if err := d.License(); err != nil {
 		fmt.Printf("Failed licensing: %s\n", err.Error())
@@ -62,11 +69,7 @@ func (d *Deployment) Create() error {
 
 func (d *Deployment) Update() error {
 	fmt.Println("Updating master...")
-	if err := d.master.Deploy(); err != nil {
-		return err
-	}
-
-	return nil
+	return d.master.Deploy()
 }
 
 func (d *Deployment) Deploy() (err error) {
@@ -91,8 +94,8 @@ func (d *Deployment) Deploy() (err error) {
 	for _, cluster := range d.Clusters {
 		go func(c *Cluster) {
 			defer wg.Done()
-			if tmpErr := c.Deploy(); tmpErr != nil {
-				err = tmpErr
+			if err = c.Deploy(); err != nil {
+				panic(err)
 			}
 		}(cluster)
 	}

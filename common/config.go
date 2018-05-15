@@ -9,25 +9,23 @@ import (
 var config *Config
 
 type Config struct {
-	DirBaseImages string
+	// DirBaseImages string
 
-	Create  string
 	Elite   string
 	License string
 
-	SSHPass string
+	// SSHPass string
 
-	DirQcow2 string
+	// DirQcow2 string
 }
 
 func NewConfig(baseDIR string) *Config {
 	config := &Config{
-		DirBaseImages: baseDIR + "/base_images",
-		DirQcow2:      baseDIR + "/qcow2",
-		Create:        baseDIR + "/scripts/create_vms_2d.sh",
-		Elite:         baseDIR + "/scripts/elite",
-		License:       baseDIR + "/scripts/chiwen-license",
-		SSHPass:       `sshpass -p 'sihua!@#890'`,
+		// DirBaseImages: baseDIR + "/base_images",
+		// DirQcow2:      baseDIR + "/qcow2",
+		Elite:   baseDIR + "/scripts/elite",
+		License: baseDIR + "/scripts/chiwen-license",
+		// SSHPass:       `sshpass -p 'sihua!@#890'`,
 	}
 
 	return config

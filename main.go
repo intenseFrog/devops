@@ -215,7 +215,7 @@ func runDestroy(cmd *cobra.Command, args []string) error {
 			return err
 		}
 	} else if all {
-		output, stderr := common.Output(exec.Command("virsh", "list", "--all", "--name"))
+		output, stderr := common.Output(exec.Command(common.DM, "ls", "-q"))
 		if stderr != "" {
 			return errors.New(stderr)
 		}
@@ -274,12 +274,12 @@ func runList(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	listArgs := []string{"list", "--all"}
+	listArgs := []string{"ls"}
 	if quiet {
-		listArgs = append(listArgs, "--name")
+		listArgs = append(listArgs, "-q")
 	}
 
-	output, stderr := common.Output(exec.Command("virsh", listArgs...))
+	output, stderr := common.Output(exec.Command(common.DM, listArgs...))
 	if stderr != "" {
 		return errors.New(stderr)
 	}

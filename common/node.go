@@ -9,8 +9,9 @@ import (
 	"text/template"
 )
 
+const DM = "docker-machine"
+
 type Node struct {
-	// Virsh
 	Name       string  `yaml:"name"`
 	ExternalIP string  `yaml:"external_ip"`
 	InternalIP string  `yaml:"internal_ip"`
@@ -44,26 +45,32 @@ func (n *Node) CleanKnownHost() {
 	fmt.Println(out)
 }
 
-func (n *Node) Create() error {
-	fmt.Printf("Creating %s...\n", n.Name)
-	// /devops/create_vms_2d.sh developer183 "br0#10.10.1.183#255.255.255.0#10.10.1.254#8.8.8.8;br0#172.16.88.183#255.255.255.0" 8 64 0 /devops/base_images/ubuntu16.04-docker17.12.1.qcow2
-	network := fmt.Sprintf("br0#%s#255.255.255.0#10.10.1.254#8.8.8.8;br0#%s#255.255.255.0", n.ExternalIP, n.InternalIP)
+func (n *Node) createArgs() (args []string) {
+	args = append(args, "create", "-d", "my", "--my-ip", n.ExternalIP)
 
-	cpu, memory, disk := "4", "6", "0"
 	if n.CPU != nil {
-		cpu = *n.CPU
+		args = append(args, "--my-cpu-count", *n.CPU)
 	}
 
 	if n.Memory != nil {
-		memory = *n.Memory
+		args = append(args, "--my-memory", *n.Memory)
 	}
 
-	if n.Disk != nil {
-		disk = *n.Disk
-	}
+	args = append(args, n.Name)
+	return
+}
 
-	imagePath := fmt.Sprintf("%s/%s", config.DirBaseImages, n.image())
-	out, stderr := Output(exec.Command(config.Create, n.Name, network, cpu, memory, disk, imagePath))
+func (n *Node) Create() error {
+	fmt.Printf("Creating %s...\n", n.Name)
+	// /devops/create_vms_2d.sh developer183 "br0#10.10.1.183#255.255.255.0#10.10.1.254#8.8.8.8;br0#172.16.88.183#255.255.255.0" 8 64 0 /devops/base_images/ubuntu16.04-docker17.12.1.qcow2
+	// network := fmt.Sprintf("br0#%s#255.255.255.0#10.10.1.254#8.8.8.8;br0#%s#255.255.255.0", n.ExternalIP, n.InternalIP)
+
+	// docker-machine create -d my --my-ip 10.10.1.195 --engine-insecure-registry 10.10.1.195:5000 luke195
+
+	args := n.createArgs()
+	// imagePath := fmt.Sprintf("%s/%s", config.DirBaseImages, n.image())
+
+	out, stderr := Output(exec.Command("docker-machine", args...))
 	if stderr != "" {
 		return errors.New(stderr)
 	}
@@ -74,7 +81,7 @@ func (n *Node) Create() error {
 
 func (n *Node) Deploy() error {
 	const templateContent = `
-{{.sshPass}} {{.ssh}} << 'EOF'
+{{.ssh}} << 'EOF'
 	docker pull {{.myctl}}
 	docker run --rm --net=host \
     	-v /var/run/docker.sock:/var/run/docker.sock \
@@ -89,7 +96,6 @@ EOF
 	tmplDeploy, _ := template.New("deploy").Parse(templateContent)
 	var tmplBuffer bytes.Buffer
 	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
-		"sshPass":    config.SSHPass,
 		"ssh":        n.ssh(),
 		"myctl":      n.cluster.myctlImage(),
 		"channel":    n.cluster.myctlChannel(),
@@ -104,7 +110,7 @@ EOF
 
 	if web := n.cluster.myctlWeb(); web != "" {
 		const webTemplate = `
-{{.sshPass}} {{.ssh}} << 'EOF'
+{{.ssh}} << 'EOF'
 	docker pull {{.web}}
 	docker run \
 		-v chiwen.web:/data \
@@ -114,9 +120,8 @@ EOF
 		tmplWeb, _ := template.New("web").Parse(webTemplate)
 		var webBuffer bytes.Buffer
 		tmplWeb.Execute(&webBuffer, &map[string]interface{}{
-			"sshPass": config.SSHPass,
-			"ssh":     n.ssh(),
-			"web":     n.cluster.myctlWeb(),
+			"ssh": n.ssh(),
+			"web": n.cluster.myctlWeb(),
 		})
 
 		_, stderr := Output(exec.Command("/bin/bash", "-c", webBuffer.String()))
@@ -130,21 +135,7 @@ EOF
 
 func (n *Node) Destroy() error {
 	fmt.Printf("Destroying %s...\n", n.Name)
-	const templateContent = `
-virsh destroy {{.name}}
-virsh undefine {{.name}}
-if [ -e "{{.qcow2}}" ]; then
-	rm {{.qcow2}}
-fi
-`
-	tmplDestroy, _ := template.New("destroy").Parse(templateContent)
-	var tmplBuffer bytes.Buffer
-	tmplDestroy.Execute(&tmplBuffer, &map[string]interface{}{
-		"name":  n.Name,
-		"qcow2": n.qcow2(),
-	})
-
-	_, stderr := Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
+	_, stderr := Output(exec.Command(DM, "rm", "-y", n.Name))
 	if stderr != "" {
 		return errors.New(stderr)
 	}
@@ -162,8 +153,8 @@ func (n *Node) kubernetesNode() clusterNode {
 
 func (n *Node) License() error {
 	const templateContent = `
-{{.sshPass}} {{.scp}}
-{{.sshPass}} {{.ssh}} << 'EOF'
+{{.scp}}
+{{.ssh}} << 'EOF'
 	cw_path=/var/lib/docker/volumes/chiwen.config/_data
 	test -d $cw_path || mkdir -p $cw_path
 	mac=$(cat /sys/class/net/$(ip route show default|awk '/default/ {print $5}')/address)
@@ -181,9 +172,8 @@ EOF
 	tmplLicense, _ := template.New("license").Parse(templateContent)
 	var tmplBuffer bytes.Buffer
 	tmplLicense.Execute(&tmplBuffer, &map[string]interface{}{
-		"sshPass": config.SSHPass,
-		"ssh":     n.ssh(),
-		"scp":     n.scp(config.License, fmt.Sprintf("%s:/root/", n.userAtNode())),
+		"ssh": n.ssh(),
+		"scp": n.scp(config.License, fmt.Sprintf("%s:/root/", n.userAtNode())),
 	})
 
 	_, stderr := Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
@@ -198,16 +188,17 @@ func (n *Node) masterIP() string {
 	return n.cluster.masterIP()
 }
 
-func (n *Node) qcow2() string {
-	return fmt.Sprintf("%s/%s.qcow2", config.DirQcow2, n.Name)
-}
+// func (n *Node) qcow2() string {
+// 	return fmt.Sprintf("%s/%s.qcow2", config.DirQcow2, n.Name)
+// }
 
 func (n *Node) scp(src, dst string) string {
-	return fmt.Sprintf("scp -o StrictHostKeyChecking=no %s %s", src, dst)
+	// return fmt.Sprintf("scp -o StrictHostKeyChecking=no %s %s", src, dst)
+	return fmt.Sprintf("%s scp -r %s %s", DM, src, dst)
 }
 
 func (n *Node) ssh() string {
-	return "ssh -o StrictHostKeyChecking=no root@" + n.ExternalIP
+	return fmt.Sprintf("%s ssh %s", DM, n.Name)
 }
 
 func (n *Node) String() string {
@@ -219,5 +210,5 @@ func (n *Node) swarmNode() clusterNode {
 }
 
 func (n *Node) userAtNode() string {
-	return "root@" + n.ExternalIP
+	return "root@" + n.Name
 }
