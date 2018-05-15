@@ -105,9 +105,16 @@ func (d *Deployment) Deploy() (err error) {
 }
 
 func (d *Deployment) Destroy() {
-	for _, c := range d.Clusters {
-		c.Destroy()
+	var wg sync.WaitGroup
+	wg.Add(len(d.ListNodes()))
+
+	for _, n := range d.ListNodes() {
+		go func(n *Node) {
+			defer wg.Done()
+			n.Destroy()
+		}(n)
 	}
+	wg.Wait()
 }
 
 func (d *Deployment) ListNodes() (nodes []*Node) {

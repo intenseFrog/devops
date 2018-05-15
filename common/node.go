@@ -46,7 +46,7 @@ func (n *Node) CleanKnownHost() {
 }
 
 func (n *Node) createArgs() (args []string) {
-	args = append(args, "create", "-d", "my", "--my-ip", n.ExternalIP)
+	args = append(args, "create", "-d", "my", "--my-ip", n.ExternalIP, "--my-ip", n.InternalIP)
 
 	if n.CPU != nil {
 		args = append(args, "--my-cpu-count", *n.CPU)
@@ -62,15 +62,11 @@ func (n *Node) createArgs() (args []string) {
 
 func (n *Node) Create() error {
 	fmt.Printf("Creating %s...\n", n.Name)
-	// /devops/create_vms_2d.sh developer183 "br0#10.10.1.183#255.255.255.0#10.10.1.254#8.8.8.8;br0#172.16.88.183#255.255.255.0" 8 64 0 /devops/base_images/ubuntu16.04-docker17.12.1.qcow2
-	// network := fmt.Sprintf("br0#%s#255.255.255.0#10.10.1.254#8.8.8.8;br0#%s#255.255.255.0", n.ExternalIP, n.InternalIP)
-
 	// docker-machine create -d my --my-ip 10.10.1.195 --engine-insecure-registry 10.10.1.195:5000 luke195
 
 	args := n.createArgs()
-	// imagePath := fmt.Sprintf("%s/%s", config.DirBaseImages, n.image())
 
-	out, stderr := Output(exec.Command("docker-machine", args...))
+	out, stderr := Output(exec.Command(DM, args...))
 	if stderr != "" {
 		return errors.New(stderr)
 	}

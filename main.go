@@ -25,6 +25,16 @@ func main() {
 		},
 	}
 
+	applyCmd := &cobra.Command{
+		Use:   "apply",
+		Short: "create machines and deploy chiwen",
+		Long:  "create machines and deploy chiwen",
+		RunE:  runApply,
+	}
+	applyCmd.Flags().Bool("force", false, "destroy previous machines")
+	applyCmd.Flags().StringP("file", "f", "", "Specify the file path")
+	applyCmd.MarkFlagRequired("file")
+
 	cleanKnowHosts := &cobra.Command{
 		Use:   "clean-known",
 		Short: "clean .ssh/known_hosts",
@@ -39,15 +49,9 @@ func main() {
 		Long:  "create a bunch of machines",
 		RunE:  runCreate,
 	}
+	createCmd.Flags().Bool("force", false, "destroy previous machines")
 	createCmd.Flags().StringP("file", "f", "", "Specify the file path")
 	createCmd.MarkFlagRequired("file")
-
-	exampleCmd := &cobra.Command{
-		Use:   "example",
-		Short: "print out an example of a yaml file",
-		Long:  "print out an example of a yaml file",
-		Run:   runExample,
-	}
 
 	deployCmd := &cobra.Command{
 		Use:   "deploy",
@@ -60,14 +64,19 @@ func main() {
 
 	destroyCmd := &cobra.Command{
 		Use:   "destroy",
-		Short: "destroy one or more nodes",
-		Long:  "destroy one or more nodes",
+		Short: "destroy nodes defined by yaml file",
+		Long:  "destroy nodes defined by yaml file",
 		RunE:  runDestroy,
 	}
 	destroyCmd.Flags().StringP("file", "f", "", "Specify the file path")
-	destroyCmd.Flags().BoolP("yes", "y", false, "Assume automatic yes on removing machines")
-	destroyCmd.Flags().Bool("all", false, "Remove all the machines available")
-	// destroyCmd.Flags().Boo("file", "f", "", "Specify the file path")
+	destroyCmd.Flags().Bool("force", false, "force destroying machines")
+
+	exampleCmd := &cobra.Command{
+		Use:   "example",
+		Short: "print out an example of a yaml file",
+		Long:  "print out an example of a yaml file",
+		Run:   runExample,
+	}
 
 	licenseCmd := &cobra.Command{
 		Use:   "license",
@@ -100,6 +109,7 @@ func main() {
 	updateCmd.Flags().StringP("file", "f", "", "Specify the file path")
 	updateCmd.MarkFlagRequired("file")
 
+	RootCmd.AddCommand(applyCmd)
 	RootCmd.AddCommand(cleanKnowHosts)
 	RootCmd.AddCommand(createCmd)
 	RootCmd.AddCommand(deployCmd)
@@ -117,18 +127,43 @@ func main() {
 	}
 }
 
+func runApply(cmd *cobra.Command, args []string) error {
+	start := time.Now()
+	defer common.PrintDone(start)
+
+	path, err := cmd.Flags().GetString("file")
+	if err != nil {
+		return err
+	}
+
+	deploy, err := common.ParseDeployment(path)
+	if err != nil {
+		return err
+	}
+
+	if force, _ := cmd.Flags().GetBool("force"); force {
+		deploy.Destroy()
+	}
+
+	if err = deploy.Create(); err != nil {
+		return err
+	}
+
+	return deploy.Deploy()
+}
+
 func runCleanKnowHosts(cmd *cobra.Command, args []string) error {
 	path, err := cmd.Flags().GetString("file")
 	if err != nil {
 		return err
 	}
 
-	deployment, err := common.ParseDeployment(path)
+	deploy, err := common.ParseDeployment(path)
 	if err != nil {
 		return err
 	}
 
-	for _, c := range deployment.Clusters {
+	for _, c := range deploy.Clusters {
 		c.CleanKnownHosts()
 	}
 
@@ -137,121 +172,83 @@ func runCleanKnowHosts(cmd *cobra.Command, args []string) error {
 
 func runCreate(cmd *cobra.Command, args []string) error {
 	start := time.Now()
+	defer common.PrintDone(start)
 
 	path, err := cmd.Flags().GetString("file")
 	if err != nil {
 		return err
 	}
 
-	deployment, err := common.ParseDeployment(path)
+	deploy, err := common.ParseDeployment(path)
 	if err != nil {
 		return err
 	}
 
-	if err := deployment.Create(); err != nil {
-		return err
+	if force, _ := cmd.Flags().GetBool("force"); force {
+		deploy.Destroy()
 	}
 
-	common.PrintDone(start)
-	return nil
+	return deploy.Create()
 }
 
 func runDeploy(cmd *cobra.Command, args []string) error {
 	start := time.Now()
+	defer common.PrintDone(start)
 
 	path, err := cmd.Flags().GetString("file")
 	if err != nil {
 		return err
 	}
 
-	deployment, err := common.ParseDeployment(path)
+	deploy, err := common.ParseDeployment(path)
 	if err != nil {
 		return err
 	}
 
-	var names []string
-	for _, n := range deployment.ListNodes() {
-		names = append(names, n.Name)
-	}
-	common.Destroy(names, true)
-
-	if err := deployment.Create(); err != nil {
-		return err
-	}
-
-	common.RemoveKnownHosts()
-
-	if err := deployment.Deploy(); err != nil {
-		return err
-	}
-
-	common.PrintDone(start)
-	return nil
+	return deploy.Deploy()
 }
 
 func runDestroy(cmd *cobra.Command, args []string) error {
-	var names []string
-
-	all, err := cmd.Flags().GetBool("all")
-	if err != nil {
-		return err
-	}
-
 	path, err := cmd.Flags().GetString("file")
 	if err != nil {
 		return err
 	}
 
-	if all && path != "" {
-		return errors.New("Cannot specify --all and --file at same time")
-	}
-
-	if path != "" {
-		if deployment, err := common.ParseDeployment(path); err == nil {
-			for _, n := range deployment.ListNodes() {
-				names = append(names, n.Name)
-			}
-		} else {
-			return err
-		}
-	} else if all {
-		output, stderr := common.Output(exec.Command(common.DM, "ls", "-q"))
-		if stderr != "" {
-			return errors.New(stderr)
-		}
-		names = strings.Split(output, "\n")
-	} else {
-		names = args
-	}
-
-	yes, err := cmd.Flags().GetBool("yes")
+	deploy, err := common.ParseDeployment(path)
 	if err != nil {
 		return err
 	}
 
-	common.Destroy(names, yes)
+	var names []string
+	for _, n := range deploy.ListNodes() {
+		names = append(names, n.Name)
+	}
+
+	force, _ := cmd.Flags().GetBool("force")
+	msg := fmt.Sprintf("About to remove %s", strings.Join(names, ", "))
+
+	if force || common.Confirm(msg) {
+		deploy.Destroy()
+	}
+
 	return nil
 }
 
 func runUpdate(cmd *cobra.Command, args []string) error {
 	start := time.Now()
+	defer common.PrintDone(start)
 
 	path, err := cmd.Flags().GetString("file")
 	if err != nil {
 		return err
 	}
 
-	deployment, err := common.ParseDeployment(path)
+	deploy, err := common.ParseDeployment(path)
 	if err != nil {
 		return err
 	}
 
-	if err := deployment.Update(); err != nil {
-		return err
-	}
-
-	common.PrintDone(start)
-	return nil
+	return deploy.Update()
 }
 
 func runLicense(cmd *cobra.Command, args []string) error {
