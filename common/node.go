@@ -81,12 +81,12 @@ func (n *Node) Deploy() error {
 	docker pull {{.myctl}}
 	docker run --rm --net=host \
     	-v /var/run/docker.sock:/var/run/docker.sock \
-    	-v chiwen.config:/etc/chiwen \
+		-v chiwen.config:/etc/chiwen \
+		-e MYCTL_IMAGE={{.myctl}} \
 		{{.myctl}} deploy \
-		-c {{.channel}} \
 		--advertise-ip={{.internalIP}} \
 		--domain={{.externalIP}} \
-		--registry-external={{.externalIP}}
+		-y
 EOF
 `
 	tmplDeploy, _ := template.New("deploy").Parse(templateContent)
@@ -94,7 +94,6 @@ EOF
 	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
 		"ssh":        n.ssh(),
 		"myctl":      n.cluster.myctlImage(),
-		"channel":    n.cluster.myctlChannel(),
 		"internalIP": n.InternalIP,
 		"externalIP": n.ExternalIP,
 	})

@@ -125,10 +125,6 @@ func (c *Cluster) masterIP() string {
 	return c.deployment.masterIP()
 }
 
-func (c *Cluster) myctlChannel() string {
-	return c.deployment.myctlChannel()
-}
-
 func (c *Cluster) myctlImage() string {
 	return c.deployment.myctlImage()
 }

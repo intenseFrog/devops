@@ -11,9 +11,8 @@ import (
 
 type Deployment struct {
 	Myctl struct {
-		Image   string `yaml:"image"`
-		Channel string `yaml:"channel"`
-		Web     string `yaml:"web"`
+		Image string `yaml:"image"`
+		Web   string `yaml:"web"`
 	} `yaml:"myctl"`
 	Clusters []*Cluster `yaml:"clusters"`
 
@@ -127,10 +126,6 @@ func (d *Deployment) ListNodes() (nodes []*Node) {
 
 func (d *Deployment) masterIP() string {
 	return d.master.ExternalIP
-}
-
-func (d *Deployment) myctlChannel() string {
-	return d.Myctl.Channel
 }
 
 func (d *Deployment) myctlImage() string {

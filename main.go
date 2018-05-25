@@ -289,8 +289,8 @@ func runExample(cmd *cobra.Command, args []string) {
 	const example = `
 myctl:
   image: 10.10.1.12:5000/myctl:latest
-  channel: devops
-  
+  web: 10.10.1.12:5000/chiwen-web:master
+
 clusters:
 - name: default
   nodes:
