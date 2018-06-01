@@ -59,10 +59,6 @@ func (d *Deployment) Create() error {
 	}
 	wg.Wait()
 
-	if err := d.License(); err != nil {
-		fmt.Printf("Failed licensing: %s\n", err.Error())
-	}
-
 	return nil
 }
 
