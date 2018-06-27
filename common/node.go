@@ -138,6 +138,11 @@ func (n *Node) Destroy() error {
 	return nil
 }
 
+func (n *Node) Exist() bool {
+	stdout, _ := Output(exec.Command(DM, "ls", "--filter", fmt.Sprintf("name=%s", n.Name), "-q"))
+	return n.Name == stdout
+}
+
 func (n *Node) image() string {
 	return fmt.Sprintf("%s-%s.qcow2", n.OS, n.Docker)
 }

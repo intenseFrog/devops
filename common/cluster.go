@@ -25,6 +25,9 @@ func (c *Cluster) CleanKnownHosts() error {
 
 func (c *Cluster) Create() error {
 	for _, node := range c.Nodes {
+		if node.Exist() {
+			continue
+		}
 		if err := node.Create(); err != nil {
 			return err
 		}

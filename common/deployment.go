@@ -52,6 +52,9 @@ func (d *Deployment) Create() error {
 	for _, n := range d.ListNodes() {
 		go func(n *Node) {
 			defer wg.Done()
+			if n.Exist() {
+				return
+			}
 			if err := n.Create(); err != nil {
 				panic(err)
 			}
