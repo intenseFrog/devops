@@ -63,10 +63,7 @@ func (n *Node) createArgs() (args []string) {
 func (n *Node) Create() error {
 	fmt.Printf("Creating %s...\n", n.Name)
 	// docker-machine create -d my --my-ip 10.10.1.195 --engine-insecure-registry 10.10.1.195:5000 luke195
-
-	args := n.createArgs()
-
-	out, stderr := Output(exec.Command(DM, args...))
+	out, stderr := Output(exec.Command(DM, n.createArgs()...))
 	if stderr != "" {
 		return errors.New(stderr)
 	}
@@ -161,11 +158,13 @@ func (n *Node) License() error {
 	hw_sig=$(echo -n "${mac}HJLXZZ" | openssl dgst -md5 -binary | openssl enc -base64)
 	/root/chiwen-license \
 		-id dummy \
+		-ed PE \
 		-hw $hw_sig \
 		-ia $(date -u +“%Y-%m-%d”) \
 		-ib minhao.jin \
 		-ea 2049-12-31 \
-		-o devops@160 > $cw_path/license.key
+		-o chiwen-team \
+		-p features=Megabric > $cw_path/license.key
 EOF
 `
 

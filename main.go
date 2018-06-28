@@ -80,10 +80,11 @@ func main() {
 
 	licenseCmd := &cobra.Command{
 		Use:   "license",
-		Short: "license a node",
+		Short: "license the master node of a deployment",
 		RunE:  runLicense,
 	}
 	licenseCmd.Flags().StringP("file", "f", "", "Specify the file path")
+	licenseCmd.MarkFlagRequired("file")
 
 	listCmd := &cobra.Command{
 		Use:   "list",
@@ -258,7 +259,7 @@ func runLicense(cmd *cobra.Command, args []string) error {
 	}
 
 	deploy, err := common.ParseDeployment(path)
-	if err == nil {
+	if err != nil {
 		return err
 	}
 
