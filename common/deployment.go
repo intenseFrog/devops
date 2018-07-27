@@ -14,7 +14,8 @@ type Deployment struct {
 		Image string `yaml:"image"`
 		Web   string `yaml:"web"`
 	} `yaml:"myctl"`
-	Clusters []*Cluster `yaml:"clusters"`
+	Clusters           []*Cluster `yaml:"clusters"`
+	InsecureRegistries []string   `yaml:"insecure-registry"`
 
 	master *Node
 }

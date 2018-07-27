@@ -20,7 +20,6 @@ type Node struct {
 	CPU        *string `yaml:"cpu,omitempty"`
 	Memory     *string `yaml:"mem,omitempty"`
 	Disk       *string `yaml:"disk,omitempty"`
-
 	//  Chiwen
 	Role string `yaml:"role"`
 
@@ -54,6 +53,10 @@ func (n *Node) createArgs() (args []string) {
 
 	if n.Memory != nil {
 		args = append(args, "--my-memory", *n.Memory)
+	}
+
+	for _, ir := range n.cluster.deployment.InsecureRegistries {
+		args = append(args, "--engine-insecure-registry", ir)
 	}
 
 	args = append(args, n.Name)

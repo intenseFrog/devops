@@ -292,6 +292,11 @@ myctl:
   image: 10.10.1.12:5000/myctl:latest
   web: 10.10.1.12:5000/chiwen-web:master
 
+inescure-resgitry:
+  - 10.10.1.12:5000
+  - 10.10.1.13:5000
+  - 10.10.1.14:5000
+
 clusters:
 - name: default
   nodes:
