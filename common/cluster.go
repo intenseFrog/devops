@@ -120,7 +120,9 @@ func (c *Cluster) Deploy() (err error) {
 
 func (c *Cluster) Destroy() {
 	for _, node := range c.Nodes {
-		node.Destroy()
+		if err := node.Destroy(); err != nil {
+			fmt.Println(err.Error())
+		}
 	}
 }
 
@@ -141,7 +143,7 @@ func (c *Cluster) myctlWeb() string {
 // return master if found
 func (c *Cluster) Normalize() (master *Node) {
 	for i, node := range c.Nodes {
-		if node.Role == "master" {
+		if node.Role == RoleMaster {
 			master = c.Nodes[i]
 		}
 		node.cluster = c
@@ -149,15 +151,15 @@ func (c *Cluster) Normalize() (master *Node) {
 
 	sort.Slice(c.Nodes, func(i, j int) bool {
 		iNode, jNode := c.Nodes[i], c.Nodes[j]
-		if iNode.Role == "master" {
+		if iNode.Role == RoleMaster {
 			return true
-		} else if jNode.Role == "master" {
+		} else if jNode.Role == RoleMaster {
 			return false
 		}
 
-		if iNode.Role == "leader" {
+		if iNode.Role == RoleLeader {
 			return true
-		} else if jNode.Role == "leader" {
+		} else if jNode.Role == RoleLeader {
 			return false
 		}
 

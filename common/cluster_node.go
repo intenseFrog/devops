@@ -40,16 +40,15 @@ func (n *swarmNode) init() error {
 
 	var tmplBuffer bytes.Buffer
 	tmplDeploy, _ := template.New("deploy-script").Parse(templateDeploy)
-	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
+
+	if err := tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
 		"ssh":       node.ssh(),
 		"deployCmd": deployScript,
-	})
-
-	_, stderr := Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
-	if stderr != "" {
-		fmt.Println(stderr)
+	}); err != nil {
+		return err
 	}
 
+	Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
 	return nil
 }
 
@@ -64,16 +63,14 @@ func (n *swarmNode) join() error {
 
 	var tmplBuffer bytes.Buffer
 	tmplDeploy, _ := template.New("deploy-script").Parse(templateDeploy)
-	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
+	if err := tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
 		"ssh":       node.ssh(),
 		"deployCmd": deployScript,
-	})
-
-	_, stderr := Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
-	if stderr != "" {
-		fmt.Println(stderr)
+	}); err != nil {
+		return err
 	}
 
+	Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
 	return nil
 }
 
@@ -98,16 +95,14 @@ func (n *kubernetesNode) init() error {
 
 	var tmplBuffer bytes.Buffer
 	tmplDeploy, _ := template.New("deploy-script").Parse(templateDeploy)
-	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
+	if err := tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
 		"ssh":       node.ssh(),
 		"deployCmd": deployScript,
-	})
-
-	_, stderr := Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
-	if stderr != "" {
-		fmt.Println(stderr)
+	}); err != nil {
+		return err
 	}
 
+	Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
 	return nil
 }
 
@@ -122,15 +117,13 @@ func (n *kubernetesNode) join() error {
 
 	tmplDeploy, _ := template.New("deploy-script").Parse(templateDeploy)
 	var tmplBuffer bytes.Buffer
-	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
+	if err := tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
 		"ssh":       n.infraNode.ssh(),
 		"deployCmd": deployScript,
-	})
-
-	_, stderr := Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
-	if stderr != "" {
-		fmt.Println(stderr)
+	}); err != nil {
+		return err
 	}
 
+	Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
 	return nil
 }

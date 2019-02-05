@@ -35,13 +35,8 @@ func (n *Node) clusterKind() string {
 }
 
 func (n *Node) CleanKnownHost() {
-	// out, stderr := Output(exec.Command("ssh-keygen", "-f", "/root/.ssh/known_hosts", "-R", n.ExternalIP))
-	out, stderr := Output(exec.Command("ssh-keygen", "-R", n.Name))
-	if stderr != "" {
-		fmt.Println(stderr)
-	}
-
-	fmt.Println(out)
+	// Output(exec.Command("ssh-keygen", "-f", "/root/.ssh/known_hosts", "-R", n.ExternalIP))
+	Output(exec.Command("ssh-keygen", "-R", n.Name))
 }
 
 func (n *Node) createArgs() (args []string) {
@@ -66,12 +61,11 @@ func (n *Node) createArgs() (args []string) {
 func (n *Node) Create() error {
 	fmt.Printf("Creating %s...\n", n.Name)
 	// docker-machine create -d my --my-ip 10.10.1.195 --engine-insecure-registry 10.10.1.195:5000 luke195
-	out, stderr := Output(exec.Command(DM, n.createArgs()...))
+	_, stderr := Output(exec.Command(DM, n.createArgs()...))
 	if stderr != "" {
 		return errors.New(stderr)
 	}
 
-	fmt.Println(out)
 	return nil
 }
 
@@ -91,17 +85,16 @@ EOF
 `
 	tmplDeploy, _ := template.New("deploy").Parse(templateContent)
 	var tmplBuffer bytes.Buffer
-	tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
+	if err := tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
 		"ssh":        n.ssh(),
 		"myctl":      n.cluster.myctlImage(),
 		"internalIP": n.InternalIP,
 		"externalIP": n.ExternalIP,
-	})
-
-	_, stderr := Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
-	if stderr != "" {
-		fmt.Println(stderr)
+	}); err != nil {
+		return err
 	}
+
+	Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
 
 	if web := n.cluster.myctlWeb(); web != "" {
 		const webTemplate = `
@@ -114,15 +107,14 @@ EOF
 `
 		tmplWeb, _ := template.New("web").Parse(webTemplate)
 		var webBuffer bytes.Buffer
-		tmplWeb.Execute(&webBuffer, &map[string]interface{}{
+		if err := tmplWeb.Execute(&webBuffer, &map[string]interface{}{
 			"ssh": n.ssh(),
 			"web": n.cluster.myctlWeb(),
-		})
-
-		_, stderr := Output(exec.Command("/bin/bash", "-c", webBuffer.String()))
-		if stderr != "" {
-			fmt.Println(stderr)
+		}); err != nil {
+			return err
 		}
+
+		Output(exec.Command("/bin/bash", "-c", webBuffer.String()))
 	}
 
 	return nil
@@ -130,11 +122,7 @@ EOF
 
 func (n *Node) Destroy() error {
 	fmt.Printf("Destroying %s...\n", n.Name)
-	_, stderr := Output(exec.Command(DM, "rm", "-y", n.Name))
-	if stderr != "" {
-		return errors.New(stderr)
-	}
-
+	Output(exec.Command(DM, "rm", "-y", n.Name))
 	return nil
 }
 
@@ -173,16 +161,14 @@ EOF
 
 	tmplLicense, _ := template.New("license").Parse(templateContent)
 	var tmplBuffer bytes.Buffer
-	tmplLicense.Execute(&tmplBuffer, &map[string]interface{}{
+	if err := tmplLicense.Execute(&tmplBuffer, &map[string]interface{}{
 		"ssh": n.ssh(),
 		"scp": n.scp(config.License, fmt.Sprintf("%s:/root/", n.userAtNode())),
-	})
-
-	_, stderr := Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
-	if stderr != "" {
-		fmt.Println(stderr)
+	}); err != nil {
+		return err
 	}
 
+	Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
 	return nil
 }
 

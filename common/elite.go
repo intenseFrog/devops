@@ -32,11 +32,7 @@ func elite(e *EliteArguments) (output []string) {
 
 	for _, cmd := range e.commands {
 		fmt.Printf("%s %s\n", config.Elite, strings.Join(cmd.args, " "))
-		stdout, stderr := Output(exec.Command(config.Elite, cmd.args...))
-		if stderr != "" {
-			fmt.Println(stderr)
-		}
-
+		stdout, _ := Output(exec.Command(config.Elite, cmd.args...))
 		if cmd.output {
 			output = append(output, stdout)
 		}
@@ -46,11 +42,9 @@ func elite(e *EliteArguments) (output []string) {
 }
 
 func eliteLogin(masterIP string) {
-	stdout, _ := Output(exec.Command(config.Elite, "login", "-u", "admin", "-p", "admin", masterIP))
-	fmt.Println(stdout)
+	Output(exec.Command(config.Elite, "login", "-u", "admin", "-p", "admin", masterIP))
 }
 
 func eliteLogout() {
-	stdout, _ := Output(exec.Command(config.Elite, "logout"))
-	fmt.Println(stdout)
+	Output(exec.Command(config.Elite, "logout"))
 }

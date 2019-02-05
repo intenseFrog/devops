@@ -277,12 +277,11 @@ func runList(cmd *cobra.Command, args []string) error {
 		listArgs = append(listArgs, "-q")
 	}
 
-	output, stderr := common.Output(exec.Command(common.DM, listArgs...))
+	_, stderr := common.Output(exec.Command(common.DM, listArgs...))
 	if stderr != "" {
 		return errors.New(stderr)
 	}
 
-	fmt.Println(output)
 	return nil
 }
 

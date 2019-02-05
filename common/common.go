@@ -3,12 +3,18 @@ package common
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
+)
+
+const (
+	RoleMaster = "master"
+	RoleLeader = "leader"
+	RoleWorker = "worker"
 )
 
 func Confirm(msg string) bool {
@@ -70,8 +76,16 @@ func PrintDone(start time.Time) {
 	fmt.Printf("Done: %s\n", PrettyDuration(time.Now().Sub(start)))
 }
 
+func output(r io.Reader, output chan<- string, done chan<- bool) {
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		output <- scanner.Text()
+	}
+	done <- true
+}
+
 // CmdOutput: gives stdout, stderr, error
-func Output(cmd *exec.Cmd) (outStr string, errStr string) {
+func Output(cmd *exec.Cmd) (string, string) {
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		log.Fatal(err)
@@ -86,19 +100,37 @@ func Output(cmd *exec.Cmd) (outStr string, errStr string) {
 		log.Fatal(err)
 	}
 
-	outPut, err := ioutil.ReadAll(stdout)
-	if err != nil {
-		log.Fatal(err)
-	}
-	outStr = strings.Trim(string(outPut), "\n")
+	defer stderr.Close()
+	defer stdout.Close()
 
-	errOutput, err := ioutil.ReadAll(stderr)
-	if err != nil {
-		log.Fatal(err)
-	}
-	errStr = strings.Trim(string(errOutput), "\n")
+	stdoutCh := make(chan string)
+	stderrCh := make(chan string)
+	doneCh := make(chan bool)
 
-	return
+	go output(stdout, stdoutCh, doneCh)
+	go output(stderr, stderrCh, doneCh)
+
+	stdoutBuilder := strings.Builder{}
+	stderrBuilder := strings.Builder{}
+
+	for i := 2; i > 0; {
+		select {
+		case s := <-stdoutCh:
+			fmt.Println(s)
+			if _, err := stdoutBuilder.WriteString(s); err != nil {
+				panic(err)
+			}
+		case e := <-stderrCh:
+			fmt.Println(e)
+			if _, err := stderrBuilder.WriteString(e); err != nil {
+				panic(err)
+			}
+		case <-doneCh:
+			i--
+		}
+	}
+
+	return stdoutBuilder.String(), stderrBuilder.String()
 }
 
 func RemoveKnownHosts() {
