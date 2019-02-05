@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"mydevops/common"
-
 	"github.com/spf13/cobra"
+
+	"mydevops/common"
 )
 
 // CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o mydevops
