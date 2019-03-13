@@ -11,8 +11,9 @@ import (
 
 type Deployment struct {
 	Myctl struct {
-		Image string `yaml:"image"`
-		Web   string `yaml:"web"`
+		Image   string   `yaml:"image"`
+		Web     string   `yaml:"web"`
+		Options []string `yaml:"options"`
 	} `yaml:"myctl"`
 	Clusters           []*Cluster `yaml:"clusters"`
 	InsecureRegistries []string   `yaml:"insecure-registry"`
@@ -27,6 +28,7 @@ func (d *Deployment) setMaster() {
 
 		if master := cluster.Normalize(); master != nil {
 			d.master = master
+			d.master.options = d.Myctl.Options
 		}
 	}
 }

@@ -1,6 +1,9 @@
 myctl:
   image: 10.10.1.12:5000/myctl:latest
   web: 10.10.1.12:5000/chiwen-web:master
+  options:
+    - "--leader"
+    - "--combo=LITE"
 
 clusters:
 - name: default

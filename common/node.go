@@ -23,6 +23,7 @@ type Node struct {
 	Role string `yaml:"role"`
 
 	cluster *Cluster
+	options []string
 }
 
 func (n *Node) clusterName() string {
@@ -72,13 +73,24 @@ func (n *Node) Deploy() error {
 	const templateContent = `
 {{.ssh}} << 'EOF'
 	docker pull {{.myctl}}
-	docker run --rm --net=host \
-    	-v /var/run/docker.sock:/var/run/docker.sock \
-		-v chiwen.config:/etc/chiwen \
+	docker run \
+		--rm \
+		--net=host \
+		--cap-add=NET_ADMIN \
 		-e MYCTL_IMAGE={{.myctl}} \
+		-e SSH_PORT=${SSH_CLIENT##* } \
+		-e SSH_USER=$(id -un) \
+		-e SSH_USER_HOME=$HOME \
+		-w /rootfs\$(pwd) \
+		-v /var/run/docker.sock:/var/run/docker.sock \
+		-v /:/rootfs \
+		-v chiwen.config:/etc/chiwen \
 		{{.myctl}} deploy \
 		--advertise-ip={{.internalIP}} \
 		--domain={{.externalIP}} \
+		{{- range .options}}
+		{{.}} \
+		{{- end}}
 		-y
 EOF
 `
@@ -89,6 +101,7 @@ EOF
 		"myctl":      n.cluster.myctlImage(),
 		"internalIP": n.InternalIP,
 		"externalIP": n.ExternalIP,
+		"options":    n.options,
 	}); err != nil {
 		return err
 	}
