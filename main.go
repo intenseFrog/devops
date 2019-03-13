@@ -290,6 +290,9 @@ func runExample(cmd *cobra.Command, args []string) {
 myctl:
   image: 10.10.1.12:5000/myctl:latest
   web: 10.10.1.12:5000/chiwen-web:master
+  options:
+	- "--leader"
+	- "--combo=LITE"
 
 inescure-resgitry:
   - 10.10.1.12:5000
