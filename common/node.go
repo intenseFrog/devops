@@ -81,7 +81,7 @@ func (n *Node) Deploy() error {
 		-e SSH_PORT=${SSH_CLIENT##* } \
 		-e SSH_USER=$(id -un) \
 		-e SSH_USER_HOME=$HOME \
-		-w /rootfs\$(pwd) \
+		-w /rootfs/$(pwd) \
 		-v /var/run/docker.sock:/var/run/docker.sock \
 		-v /:/rootfs \
 		-v chiwen.config:/etc/chiwen \
