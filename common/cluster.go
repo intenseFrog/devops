@@ -23,7 +23,8 @@ func (c *Cluster) Deploy() {
 	}
 	elite(createArgs...)
 
-	hostDict := parseHostOutput(elite("host", "ls"))
+	stdout, _ := elite("host", "ls")
+	hostDict := parseHostOutput(stdout)
 	for _, n := range c.Nodes {
 		id, ok := hostDict[n.Name]
 		if !ok {

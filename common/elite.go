@@ -24,10 +24,9 @@ func (e *EliteArguments) Append(output bool, args ...string) {
 	e.commands = append(e.commands, eliteArg{output: output, args: args})
 }
 
-func elite(args ...string) string {
+func elite(args ...string) (string, string) {
 	fmt.Printf("%s %s\n", config.Elite, strings.Join(args, " "))
-	stdout, _ := Output(exec.Command(config.Elite, args...))
-	return stdout
+	return Output(exec.Command(config.Elite, args...))
 }
 
 // FIXME: supposed to evaluate elite stderr
@@ -37,7 +36,7 @@ func eliteLogin(masterIP string, timeout time.Duration) {
 		if !time.Now().Before(until) {
 			break
 		}
-		stdout, _ := Output(exec.Command(config.Elite, "login", "-u", "admin", "-p", "admin", masterIP))
+		stdout, _ := elite("login", "-u", "admin", "-p", "admin", masterIP)
 		if !strings.Contains(stdout, "ERROR") {
 			break
 		}
@@ -46,5 +45,5 @@ func eliteLogin(masterIP string, timeout time.Duration) {
 }
 
 func eliteLogout() {
-	Output(exec.Command(config.Elite, "logout"))
+	elite("logout")
 }

@@ -159,8 +159,7 @@ EOF
 `
 
 func (h *Host) Join() error {
-	cmd := fmt.Sprintf(`sh -c "$(curl -fksNSL https://%s/deploy-host.sh)" - --token unused`, h.deployment.masterIP())
-
+	cmd, _ := elite("host", "deploy-script", "-q")
 	var buf bytes.Buffer
 	tmpl, _ := template.New("ssh").Parse(sshTemplate)
 	if err := tmpl.Execute(&buf, &map[string]interface{}{

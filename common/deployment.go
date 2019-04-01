@@ -56,7 +56,7 @@ func (d *Deployment) Deploy() (err error) {
 	}
 
 	// try to login
-	// also works as a health check see if chiwen is ready
+	// also works as a health-check to see if chiwen is ready
 	eliteLogin(d.Master.ExternalIP, 5*time.Minute)
 
 	var wg sync.WaitGroup
