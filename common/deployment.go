@@ -1,7 +1,6 @@
 package common
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"sync"
@@ -15,53 +14,25 @@ type Deployment struct {
 		Web     string   `yaml:"web"`
 		Options []string `yaml:"options"`
 	} `yaml:"myctl"`
+	Master             *Host      `yaml:"master"`
+	Hosts              []*Host    `yaml:"hosts"`
 	Clusters           []*Cluster `yaml:"clusters"`
 	InsecureRegistries []string   `yaml:"insecure-registry"`
-
-	master *Node
-}
-
-func (d *Deployment) setMaster() {
-	for i := range d.Clusters {
-		cluster := d.Clusters[i]
-		cluster.deployment = d
-
-		if master := cluster.Normalize(); master != nil {
-			d.master = master
-			d.master.options = d.Myctl.Options
-		}
-	}
-}
-
-func (d *Deployment) License() error {
-	if d.master == nil {
-		return errors.New("master not set, skip licensing")
-	}
-
-	fmt.Println("Licensing...")
-	return d.master.License()
-}
-
-func (d *Deployment) CleanKnownHosts() {
-	for _, c := range d.Clusters {
-		c.CleanKnownHosts()
-	}
 }
 
 func (d *Deployment) Create() error {
 	var wg sync.WaitGroup
-	wg.Add(len(d.ListNodes()))
+	wg.Add(len(d.ListHosts()))
 
-	for _, n := range d.ListNodes() {
-		go func(n *Node) {
+	for _, h := range d.ListHosts() {
+		go func(h *Host) {
 			defer wg.Done()
-			if n.Exist() {
-				return
+			if !h.Exist() {
+				if err := h.Create(); err != nil {
+					panic(err)
+				}
 			}
-			if err := n.Create(); err != nil {
-				panic(err)
-			}
-		}(n)
+		}(h)
 	}
 	wg.Wait()
 
@@ -70,64 +41,69 @@ func (d *Deployment) Create() error {
 
 func (d *Deployment) Update() error {
 	fmt.Println("Updating master...")
-	return d.master.Deploy()
+	return d.Master.Deploy()
 }
 
 func (d *Deployment) Deploy() (err error) {
 	defer eliteLogout()
 
-	if err = d.License(); err != nil {
-		fmt.Printf("Failed licensing: %s\n", err.Error())
-	}
-
 	fmt.Println("Deploying master...")
-	if err = d.master.Deploy(); err != nil {
+	if err = d.Master.Deploy(); err != nil {
 		return err
 	}
 
-	eliteLogin(d.master.ExternalIP)
-
-	fmt.Println("Deploying clusters...")
-
 	var wg sync.WaitGroup
-	wg.Add(len(d.Clusters))
-
-	for _, cluster := range d.Clusters {
-		go func(c *Cluster) {
+	wg.Add(len(d.Hosts))
+	fmt.Println("Joining hosts...")
+	for i := range d.Hosts {
+		h := d.Hosts[i]
+		go func() {
 			defer wg.Done()
-			if err = c.Deploy(); err != nil {
+			if err = h.Join(); err != nil {
 				panic(err)
 			}
-		}(cluster)
+		}()
 	}
 
+	eliteLogin(d.Master.ExternalIP)
+	fmt.Println("Deploying clusters...")
+
 	wg.Wait()
+	wg.Add(len(d.Clusters))
+	for i := range d.Clusters {
+		c := d.Clusters[i]
+		go func() {
+			defer wg.Done()
+			c.Deploy()
+		}()
+	}
+	wg.Wait()
+
 	return
 }
 
 func (d *Deployment) Destroy() {
 	var wg sync.WaitGroup
-	wg.Add(len(d.ListNodes()))
+	wg.Add(len(d.ListHosts()))
 
-	for _, n := range d.ListNodes() {
-		go func(n *Node) {
+	for _, h := range d.ListHosts() {
+		go func(h *Host) {
 			defer wg.Done()
-			n.Destroy()
-		}(n)
+			h.Destroy()
+		}(h)
 	}
+
 	wg.Wait()
 }
 
-func (d *Deployment) ListNodes() (nodes []*Node) {
-	for _, c := range d.Clusters {
-		nodes = append(nodes, c.Nodes...)
-	}
-
-	return
+func (d *Deployment) ListHosts() (hosts []*Host) {
+	hosts = append(hosts, d.Master)
+	hosts = append(hosts, d.Hosts...)
+	return hosts
 }
 
 func (d *Deployment) masterIP() string {
-	return d.master.ExternalIP
+	return d.Master.ExternalIP
 }
 
 func (d *Deployment) myctlImage() string {
@@ -144,7 +120,16 @@ func parseDeployment(data []byte) (*Deployment, error) {
 		return nil, err
 	}
 
-	d.setMaster()
+	// set deployment
+	d.Master.deployment = d
+	for i := range d.Hosts {
+		d.Hosts[i].deployment = d
+	}
+	for i := range d.Clusters {
+		d.Clusters[i].deployment = d
+		d.Clusters[i].Normalize()
+	}
+
 	return d, nil
 }
 

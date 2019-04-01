@@ -2,88 +2,57 @@ myctl:
   image: 10.10.1.12:5000/myctl:latest
   web: 10.10.1.12:5000/chiwen-web:master
   options:
-    - "--leader"
-    - "--combo=LITE"
+	- "--combo=LITE"
+
+inescure-resgitry:
+  - 10.10.1.12:5000
+  - 10.10.1.13:5000
+  - 10.10.1.14:5000
+
+master:
+  name: devops160
+  external_ip: 10.10.1.160
+  internal_ip: 172.16.88.160
+  os: ubuntu16.04
+  docker: docker17.12.1
+
+hosts:
+- name: devops161
+  external_ip: 10.10.1.161
+	internal_ip: 172.16.88.161
+	os: ubuntu16.04
+	docker: docker17.12.1
+- name: devops162
+  external_ip: 10.10.1.162
+	internal_ip: 172.16.88.162
+	os: ubuntu16.04
+	docker: docker17.12.1
+- name: devops163
+  external_ip: 10.10.1.163
+	internal_ip: 172.16.88.163
+	os: centos7
+	docker: docker17.12.1
+- name: devops164
+  external_ip: 10.10.1.164
+	internal_ip: 172.16.88.164
+	os: centos7
+	docker: docker17.12.1
 
 clusters:
-- name: default
-  nodes:
-  - name: devops160
-    role: master
-    external_ip: 10.10.1.160
-    internal_ip: 172.16.88.160
-    os: ubuntu16.04
-    docker: docker17.12.1
 - name: red
   kind: swarm
-  parmameters:
-    internal.network.cidr: 172.168.88.0/24
   nodes:
   - name: devops161
-    role: leader
-    external_ip: 10.10.1.161
-    internal_ip: 172.16.88.161
-    os: ubuntu16.04
-    docker: docker17.12.1
+	  role: leader
   - name: devops162
-    role: worker
-    external_ip: 10.10.1.162
-    internal_ip: 172.16.88.162
-    os: ubuntu16.04
-    docker: docker17.12.1
-  - name: devops163
-    role: worker
-    external_ip: 10.10.1.163
-    internal_ip: 172.16.88.163
-    os: ubuntu16.04
-    docker: docker17.12.1
+	  role: worker
 - name: blue
   kind: kubernetes
   parameters:
     network: flannel
     elastic: on
-    internal.network.cidr: 172.168.88.0/24
   nodes:
   - name: devops164
-    role: leader
-    external_ip: 10.10.1.164
-    internal_ip: 172.16.88.164
-    os: ubuntu16.04
-    docker: docker17.12.1
+	  role: leader
   - name: devops165
     role: worker
-    external_ip: 10.10.1.165
-    internal_ip: 172.16.88.165
-    os: ubuntu16.04
-    docker: docker17.12.1
-  - name: devops166
-    role: worker
-    external_ip: 10.10.1.166
-    internal_ip: 172.16.88.166
-    os: ubuntu16.04
-    docker: docker17.12.1
-- name: gray
-  kind: kubernetes
-  parameters:
-    network: calico
-    elastic: on
-    internal.network.cidr: 172.168.88.0/24
-  nodes:
-  - name: devops167
-    role: leader
-    external_ip: 10.10.1.167
-    internal_ip: 172.16.88.167
-    os: centos7
-    docker: docker17.12.1
-  - name: devops168
-    role: worker
-    external_ip: 10.10.1.168
-    internal_ip: 172.16.88.168
-    os: centos7
-    docker: docker17.12.1
-  - name: devops169
-    role: worker
-    external_ip: 10.10.1.169
-    internal_ip: 172.16.88.169
-    os: centos7
-    docker: docker17.12.1

@@ -3,7 +3,7 @@ package common
 import (
 	"fmt"
 	"sort"
-	"sync"
+	"strings"
 )
 
 type Cluster struct {
@@ -15,157 +15,44 @@ type Cluster struct {
 	deployment *Deployment
 }
 
-func (c *Cluster) CleanKnownHosts() error {
-	for _, node := range c.Nodes {
-		node.CleanKnownHost()
+func (c *Cluster) Deploy() {
+	// create cluster first
+	createArgs := []string{"cluster", "create", c.Name, "--" + c.Kind}
+	for k, v := range c.Params {
+		createArgs = append(createArgs, "-p", fmt.Sprintf("%s=%s", k, v))
 	}
+	elite(createArgs...)
 
-	return nil
-}
-
-func (c *Cluster) Create() error {
-	for _, node := range c.Nodes {
-		if node.Exist() {
-			continue
+	hostDict := parseHostOutput(elite("host", "ls"))
+	for _, n := range c.Nodes {
+		id, ok := hostDict[n.Name]
+		if !ok {
+			panic(fmt.Errorf("cannot find host %s", n.Name))
 		}
-		if err := node.Create(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (c *Cluster) deployDefault() (err error) {
-	if len(c.Nodes) == 1 {
-		return
-	}
-
-	var wg sync.WaitGroup
-	wg.Add(len(c.Nodes) - 1)
-
-	for _, node := range c.Nodes[1:] {
-		go func(n *Node) {
-			defer wg.Done()
-			if tmpErr := n.swarmNode().join(); tmpErr != nil {
-				err = tmpErr
-			}
-		}(node)
-	}
-
-	wg.Wait()
-	return
-}
-
-func (c *Cluster) deployKubernetes() (err error) {
-	leader := c.Nodes[0].kubernetesNode()
-	if err = leader.init(); err != nil {
-		return
-	}
-
-	var wg sync.WaitGroup
-	wg.Add(len(c.Nodes) - 1)
-
-	for _, node := range c.Nodes[1:] {
-		go func(n *Node) {
-			defer wg.Done()
-			if tmpErr := n.kubernetesNode().join(); tmpErr != nil {
-				err = tmpErr
-			}
-		}(node)
-	}
-
-	wg.Wait()
-	return
-}
-
-func (c *Cluster) deploySwarm() (err error) {
-	leader := c.Nodes[0].swarmNode()
-	if err = leader.init(); err != nil {
-		return
-	}
-
-	var wg sync.WaitGroup
-	wg.Add(len(c.Nodes) - 1)
-
-	for _, node := range c.Nodes[1:] {
-		go func(n *Node) {
-			defer wg.Done()
-			if tmpErr := n.swarmNode().join(); tmpErr != nil {
-				err = tmpErr
-			}
-		}(node)
-	}
-
-	wg.Wait()
-	return
-}
-
-func (c *Cluster) Deploy() (err error) {
-	if c.Name == "default" {
-		err = c.deployDefault()
-	} else {
-		switch c.Kind {
-		case "swarm":
-			err = c.deploySwarm()
-		case "kubernetes":
-			err = c.deployKubernetes()
-		default:
-			err = fmt.Errorf("invalid kind of cluster: %s", c.Kind)
-		}
-	}
-
-	return
-}
-
-func (c *Cluster) Destroy() {
-	for _, node := range c.Nodes {
-		if err := node.Destroy(); err != nil {
-			fmt.Println(err.Error())
-		}
+		n.Join(id)
 	}
 }
 
-func (c *Cluster) masterIP() string {
-	return c.deployment.masterIP()
-}
+// parse host out to the format of Name->ID
+func parseHostOutput(output string) map[string]string {
+	rows := strings.Split(output, "\n")
+	res := make(map[string]string)
+	for i := 1; i < len(rows); i++ {
+		cols := strings.Split(rows[i], " ")
+		res[cols[1]] = cols[0]
+	}
 
-func (c *Cluster) myctlImage() string {
-	return c.deployment.myctlImage()
-}
-
-func (c *Cluster) myctlWeb() string {
-	return c.deployment.myctlWeb()
+	return res
 }
 
 // Sort nodes in the order of role: master > leader > worker
 // assign cluster to each node
-// return master if found
-func (c *Cluster) Normalize() (master *Node) {
-	for i, node := range c.Nodes {
-		if node.Role == RoleMaster {
-			master = c.Nodes[i]
-		}
-		node.cluster = c
+func (c *Cluster) Normalize() {
+	for i := range c.Nodes {
+		c.Nodes[i].cluster = c
 	}
 
 	sort.Slice(c.Nodes, func(i, j int) bool {
-		iNode, jNode := c.Nodes[i], c.Nodes[j]
-		if iNode.Role == RoleMaster {
-			return true
-		} else if jNode.Role == RoleMaster {
-			return false
-		}
-
-		if iNode.Role == RoleLeader {
-			return true
-		} else if jNode.Role == RoleLeader {
-			return false
-		}
-
-		// must both be workers
-		return true
+		return c.Nodes[i].Role == RoleManager || c.Nodes[i].Role == RoleLeader
 	})
-
-	return
 }

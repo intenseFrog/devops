@@ -12,9 +12,10 @@ import (
 )
 
 const (
-	RoleMaster = "master"
-	RoleLeader = "leader"
-	RoleWorker = "worker"
+	RoleMaster  = "master"
+	RoleLeader  = "leader"
+	RoleManager = "manager"
+	RoleWorker  = "worker"
 )
 
 func Confirm(msg string) bool {
@@ -38,8 +39,8 @@ func Destroy(names []string, yes bool) {
 	}
 
 	for _, name := range names {
-		node := &Node{Name: name}
-		if err := node.Destroy(); err != nil {
+		h := &Host{Name: name}
+		if err := h.Destroy(); err != nil {
 			fmt.Println(err.Error())
 		}
 	}

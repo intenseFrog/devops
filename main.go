@@ -20,8 +20,8 @@ func main() {
 		Use:   "mydevops",
 		Short: "CLI tool to manage miaoyun",
 		Long:  "CLI tool to manage miaoyun",
-		Run: func(cmd *cobra.Command, args []string) {
-			cmd.Help()
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return cmd.Help()
 		},
 	}
 
@@ -34,14 +34,6 @@ func main() {
 	applyCmd.Flags().Bool("force", false, "destroy previous machines")
 	applyCmd.Flags().StringP("file", "f", "", "Specify the file path")
 	applyCmd.MarkFlagRequired("file")
-
-	cleanKnowHosts := &cobra.Command{
-		Use:   "clean-known",
-		Short: "clean .ssh/known_hosts",
-		Long:  "clean .ssh/known_hosts",
-		RunE:  runCleanKnowHosts,
-	}
-	cleanKnowHosts.Flags().StringP("file", "f", "", "Specify the file path")
 
 	createCmd := &cobra.Command{
 		Use:   "create",
@@ -78,14 +70,6 @@ func main() {
 		Run:   runExample,
 	}
 
-	licenseCmd := &cobra.Command{
-		Use:   "license",
-		Short: "license the master node of a deployment",
-		RunE:  runLicense,
-	}
-	licenseCmd.Flags().StringP("file", "f", "", "Specify the file path")
-	licenseCmd.MarkFlagRequired("file")
-
 	listCmd := &cobra.Command{
 		Use:   "list",
 		Short: "list nodes",
@@ -111,11 +95,9 @@ func main() {
 	updateCmd.MarkFlagRequired("file")
 
 	RootCmd.AddCommand(applyCmd)
-	RootCmd.AddCommand(cleanKnowHosts)
 	RootCmd.AddCommand(createCmd)
 	RootCmd.AddCommand(deployCmd)
 	RootCmd.AddCommand(exampleCmd)
-	RootCmd.AddCommand(licenseCmd)
 	RootCmd.AddCommand(listCmd)
 	RootCmd.AddCommand(destroyCmd)
 	RootCmd.AddCommand(updateCmd)
@@ -151,24 +133,6 @@ func runApply(cmd *cobra.Command, args []string) error {
 	}
 
 	return deploy.Deploy()
-}
-
-func runCleanKnowHosts(cmd *cobra.Command, args []string) error {
-	path, err := cmd.Flags().GetString("file")
-	if err != nil {
-		return err
-	}
-
-	deploy, err := common.ParseDeployment(path)
-	if err != nil {
-		return err
-	}
-
-	for _, c := range deploy.Clusters {
-		c.CleanKnownHosts()
-	}
-
-	return nil
 }
 
 func runCreate(cmd *cobra.Command, args []string) error {
@@ -221,8 +185,8 @@ func runDestroy(cmd *cobra.Command, args []string) error {
 	}
 
 	var names []string
-	for _, n := range deploy.ListNodes() {
-		names = append(names, n.Name)
+	for _, h := range deploy.ListHosts() {
+		names = append(names, h.Name)
 	}
 
 	force, _ := cmd.Flags().GetBool("force")
@@ -252,20 +216,6 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	return deploy.Update()
 }
 
-func runLicense(cmd *cobra.Command, args []string) error {
-	path, err := cmd.Flags().GetString("file")
-	if err != nil {
-		return err
-	}
-
-	deploy, err := common.ParseDeployment(path)
-	if err != nil {
-		return err
-	}
-
-	return deploy.License()
-}
-
 func runList(cmd *cobra.Command, args []string) error {
 	quiet, err := cmd.Flags().GetBool("quiet")
 	if err != nil {
@@ -291,38 +241,50 @@ myctl:
   image: 10.10.1.12:5000/myctl:latest
   web: 10.10.1.12:5000/chiwen-web:master
   options:
-	- "--leader"
-	- "--combo=LITE"
-
+  - "--combo=LITE"
+  
 inescure-resgitry:
   - 10.10.1.12:5000
   - 10.10.1.13:5000
   - 10.10.1.14:5000
-
+  
+master:
+  name: devops160
+  external_ip: 10.10.1.160
+  internal_ip: 172.16.88.160
+  os: ubuntu16.04
+  docker: docker17.12.1
+  
+hosts:
+- name: devops161
+  external_ip: 10.10.1.161
+  internal_ip: 172.16.88.161
+  os: ubuntu16.04
+  docker: docker17.12.1
+- name: devops162
+  external_ip: 10.10.1.162
+  internal_ip: 172.16.88.162
+  os: ubuntu16.04
+  docker: docker17.12.1
+- name: devops163
+  external_ip: 10.10.1.163
+  internal_ip: 172.16.88.163
+  os: centos7
+  docker: docker17.12.1
+- name: devops164
+  external_ip: 10.10.1.164
+  internal_ip: 172.16.88.164
+  os: centos7
+  docker: docker17.12.1
+  
 clusters:
-- name: default
-  nodes:
-  - name: devops160
-	role: master
-	external_ip: 10.10.1.160
-	internal_ip: 172.16.88.160
-	os: ubuntu16.04
-	docker: docker17.12.1
 - name: red
   kind: swarm
   nodes:
   - name: devops161
 	role: leader
-	external_ip: 10.10.1.161
-	internal_ip: 172.16.88.161
-	os: ubuntu16.04
-	docker: docker17.12.1
   - name: devops162
 	role: worker
-	external_ip: 10.10.1.162
-	internal_ip: 172.16.88.162
-	os: ubuntu16.04
-	docker: docker17.12.1
 - name: blue
   kind: kubernetes
   parameters:
@@ -331,16 +293,8 @@ clusters:
   nodes:
   - name: devops164
 	role: leader
-	external_ip: 10.10.1.164
-	internal_ip: 172.16.88.164
-	os: centos7
-	docker: docker17.12.1
   - name: devops165
 	role: worker
-	external_ip: 10.10.1.165
-	internal_ip: 172.16.88.165
-	os: ubuntu16.04
-	docker: docker17.12.1
 `
 
 	fmt.Println(example)
@@ -352,19 +306,14 @@ func runParse(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	deployment, err := common.ParseDeployment(path)
+	deploy, err := common.ParseDeployment(path)
 	if err != nil {
 		return err
 	}
 
-	for i := range deployment.Clusters {
-		cluster := deployment.Clusters[i]
-		cluster.Normalize()
-	}
-
-	for _, c := range deployment.Clusters {
+	for _, c := range deploy.Clusters {
 		for _, node := range c.Nodes {
-			fmt.Println(node.String())
+			fmt.Printf("%+v\n", node)
 		}
 	}
 

@@ -7,6 +7,7 @@ import (
 	"sync"
 )
 
+// global mutex
 var eliteMutex sync.Mutex
 
 type eliteArg struct {
@@ -26,19 +27,13 @@ func (e *EliteArguments) Append(output bool, args ...string) {
 	e.commands = append(e.commands, eliteArg{output: output, args: args})
 }
 
-func elite(e *EliteArguments) (output []string) {
+func elite(args ...string) string {
 	eliteMutex.Lock()
 	defer eliteMutex.Unlock()
 
-	for _, cmd := range e.commands {
-		fmt.Printf("%s %s\n", config.Elite, strings.Join(cmd.args, " "))
-		stdout, _ := Output(exec.Command(config.Elite, cmd.args...))
-		if cmd.output {
-			output = append(output, stdout)
-		}
-	}
-
-	return output
+	fmt.Printf("%s %s\n", config.Elite, strings.Join(args, " "))
+	stdout, _ := Output(exec.Command(config.Elite, args...))
+	return stdout
 }
 
 func eliteLogin(masterIP string) {
