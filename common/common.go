@@ -118,12 +118,12 @@ func Output(cmd *exec.Cmd) (string, string) {
 		select {
 		case s := <-stdoutCh:
 			fmt.Println(s)
-			if _, err := stdoutBuilder.WriteString(s); err != nil {
+			if _, err := stdoutBuilder.WriteString(s + "\n"); err != nil {
 				panic(err)
 			}
 		case e := <-stderrCh:
 			fmt.Println(e)
-			if _, err := stderrBuilder.WriteString(e); err != nil {
+			if _, err := stderrBuilder.WriteString(e + "\n"); err != nil {
 				panic(err)
 			}
 		case <-doneCh:
@@ -132,8 +132,4 @@ func Output(cmd *exec.Cmd) (string, string) {
 	}
 
 	return stdoutBuilder.String(), stderrBuilder.String()
-}
-
-func RemoveKnownHosts() {
-	Output(exec.Command("rm", "~/.ssh/known_hosts"))
 }

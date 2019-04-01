@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"sync"
+	"time"
 
 	yaml "gopkg.in/yaml.v2"
 )
@@ -22,12 +23,14 @@ type Deployment struct {
 
 func (d *Deployment) Create() error {
 	var wg sync.WaitGroup
-	wg.Add(len(d.ListHosts()))
+	hosts := d.ListHosts()
+	wg.Add(len(hosts))
 
-	for _, h := range d.ListHosts() {
+	for _, h := range hosts {
 		go func(h *Host) {
 			defer wg.Done()
 			if !h.Exist() {
+				fmt.Println(h.Name)
 				if err := h.Create(); err != nil {
 					panic(err)
 				}
@@ -52,6 +55,10 @@ func (d *Deployment) Deploy() (err error) {
 		return err
 	}
 
+	// try to login
+	// also works as a health check see if chiwen is ready
+	eliteLogin(d.Master.ExternalIP, 5*time.Minute)
+
 	var wg sync.WaitGroup
 	wg.Add(len(d.Hosts))
 	fmt.Println("Joining hosts...")
@@ -64,11 +71,9 @@ func (d *Deployment) Deploy() (err error) {
 			}
 		}()
 	}
-
-	eliteLogin(d.Master.ExternalIP)
-	fmt.Println("Deploying clusters...")
-
 	wg.Wait()
+
+	fmt.Println("Deploying clusters...")
 	wg.Add(len(d.Clusters))
 	for i := range d.Clusters {
 		c := d.Clusters[i]

@@ -33,7 +33,6 @@ func main() {
 	}
 	applyCmd.Flags().Bool("force", false, "destroy previous machines")
 	applyCmd.Flags().StringP("file", "f", "", "Specify the file path")
-	applyCmd.MarkFlagRequired("file")
 
 	createCmd := &cobra.Command{
 		Use:   "create",
@@ -43,7 +42,6 @@ func main() {
 	}
 	createCmd.Flags().Bool("force", false, "destroy previous machines")
 	createCmd.Flags().StringP("file", "f", "", "Specify the file path")
-	createCmd.MarkFlagRequired("file")
 
 	deployCmd := &cobra.Command{
 		Use:   "deploy",
@@ -52,7 +50,6 @@ func main() {
 		RunE:  runDeploy,
 	}
 	deployCmd.Flags().StringP("file", "f", "", "Specify the file path")
-	deployCmd.MarkFlagRequired("file")
 
 	destroyCmd := &cobra.Command{
 		Use:   "destroy",
@@ -92,7 +89,6 @@ func main() {
 		RunE:  runUpdate,
 	}
 	updateCmd.Flags().StringP("file", "f", "", "Specify the file path")
-	updateCmd.MarkFlagRequired("file")
 
 	RootCmd.AddCommand(applyCmd)
 	RootCmd.AddCommand(createCmd)
@@ -244,9 +240,9 @@ myctl:
   - "--combo=LITE"
   
 inescure-resgitry:
-  - 10.10.1.12:5000
-  - 10.10.1.13:5000
-  - 10.10.1.14:5000
+- 10.10.1.12:5000
+- 10.10.1.13:5000
+- 10.10.1.14:5000
   
 master:
   name: devops160

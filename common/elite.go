@@ -4,11 +4,8 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
-	"sync"
+	"time"
 )
-
-// global mutex
-var eliteMutex sync.Mutex
 
 type eliteArg struct {
 	output bool
@@ -28,16 +25,24 @@ func (e *EliteArguments) Append(output bool, args ...string) {
 }
 
 func elite(args ...string) string {
-	eliteMutex.Lock()
-	defer eliteMutex.Unlock()
-
 	fmt.Printf("%s %s\n", config.Elite, strings.Join(args, " "))
 	stdout, _ := Output(exec.Command(config.Elite, args...))
 	return stdout
 }
 
-func eliteLogin(masterIP string) {
-	Output(exec.Command(config.Elite, "login", "-u", "admin", "-p", "admin", masterIP))
+// FIXME: supposed to evaluate elite stderr
+func eliteLogin(masterIP string, timeout time.Duration) {
+	until := time.Now().Add(timeout)
+	for {
+		if !time.Now().Before(until) {
+			break
+		}
+		stdout, _ := Output(exec.Command(config.Elite, "login", "-u", "admin", "-p", "admin", masterIP))
+		if !strings.Contains(stdout, "ERROR") {
+			break
+		}
+		time.Sleep(5 * time.Second)
+	}
 }
 
 func eliteLogout() {
