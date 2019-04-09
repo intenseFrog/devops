@@ -238,12 +238,12 @@ myctl:
   web: 10.10.1.12:5000/chiwen-web:master
   options:
   - "--combo=LITE"
-  
+
 inescure-resgitry:
 - 10.10.1.12:5000
 - 10.10.1.13:5000
 - 10.10.1.14:5000
-  
+
 master:
   name: devops160
   external_ip: 10.10.1.160
@@ -278,19 +278,19 @@ clusters:
   kind: swarm
   nodes:
   - name: devops161
-	role: leader
+    role: leader
   - name: devops162
-	role: worker
+    role: worker
 - name: blue
   kind: kubernetes
   parameters:
-	network: flannel
-	elastic: on
+    network: flannel
+    elastic: on
   nodes:
   - name: devops164
-	role: leader
+    role: leader
   - name: devops165
-	role: worker
+    role: worker
 `
 
 	fmt.Println(example)

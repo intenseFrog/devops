@@ -74,7 +74,7 @@ func (h *Host) Deploy() error {
 		-v /:/rootfs \
 		-v chiwen.config:/etc/chiwen \
 		{{.myctl}} deploy \
-		--advertise-ip={{.internalIP}} \
+		--host-ip={{.internalIP}} \
 		--domain={{.externalIP}} \
 		{{- range .options}}
 		{{.}} \
