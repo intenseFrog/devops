@@ -102,7 +102,9 @@ func (d *Deployment) Destroy() {
 }
 
 func (d *Deployment) ListHosts() (hosts []*Host) {
-	hosts = append(hosts, d.Master)
+	if d.Master != nil {
+		hosts = append(hosts, d.Master)
+	}
 	hosts = append(hosts, d.Hosts...)
 	return hosts
 }
@@ -126,7 +128,10 @@ func parseDeployment(data []byte) (*Deployment, error) {
 	}
 
 	// set deployment
-	d.Master.deployment = d
+	if d.Master != nil {
+		d.Master.deployment = d
+	}
+
 	for i := range d.Hosts {
 		d.Hosts[i].deployment = d
 	}
