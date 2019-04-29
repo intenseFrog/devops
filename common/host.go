@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"strings"
 	"text/template"
 )
 
@@ -50,6 +51,10 @@ func (h *Host) Create() error {
 	// docker-machine create -d my --my-ip 10.10.1.195 --engine-insecure-registry 10.10.1.195:5000 luke195
 	_, stderr := Output(exec.Command(DM, h.createArgs()...))
 	if stderr != "" {
+		if strings.Contains(stderr, "already exists") {
+			return nil
+		}
+
 		return errors.New(stderr)
 	}
 
