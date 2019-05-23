@@ -14,6 +14,6 @@ var joinMutex sync.Mutex
 func (n *Node) Join(hostID string) {
 	joinMutex.Lock()
 	defer joinMutex.Unlock()
-	elite("cluster", "use", n.cluster.Name)
-	elite("cluster", "join", hostID, "--role", n.Role)
+	my("cluster", "use", n.cluster.Name)
+	my("cluster", "join", hostID, "--role", n.Role)
 }

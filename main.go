@@ -233,11 +233,13 @@ func runList(cmd *cobra.Command, args []string) error {
 
 func runExample(cmd *cobra.Command, args []string) {
 	const example = `
-myctl:
-  image: 10.10.1.12:5000/myctl:latest
-  web: 10.10.1.12:5000/chiwen-web:master
+chiwen:
+  image: 10.10.1.12:5000/chiwen:master
   options:
-  - "--combo=LITE"
+	- "--combo=LITE"
+
+web:
+	image: 10.10.1.12:5000/chiwen-web:master
 
 inescure-resgitry:
 - 10.10.1.12:5000

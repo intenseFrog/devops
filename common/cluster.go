@@ -21,9 +21,9 @@ func (c *Cluster) Deploy() {
 	for k, v := range c.Params {
 		createArgs = append(createArgs, "-p", fmt.Sprintf("%s=%s", k, v))
 	}
-	elite(createArgs...)
+	my(createArgs...)
 
-	stdout, _ := elite("host", "ls")
+	stdout, _ := my("host", "ls")
 	hostDict := parseHostOutput(stdout)
 	for _, n := range c.Nodes {
 		id, ok := hostDict[n.Name]

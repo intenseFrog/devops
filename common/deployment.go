@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 	"io/ioutil"
+	"strings"
 	"sync"
 	"time"
 
@@ -10,11 +11,13 @@ import (
 )
 
 type Deployment struct {
-	Myctl struct {
+	Chiwen struct {
 		Image   string   `yaml:"image"`
-		Web     string   `yaml:"web"`
 		Options []string `yaml:"options"`
-	} `yaml:"myctl"`
+	} `yaml:"chiwen"`
+	Web struct {
+		Image string `yaml:"image"`
+	} `yaml:"web"`
 	Master             *Host      `yaml:"master"`
 	Hosts              []*Host    `yaml:"hosts"`
 	Clusters           []*Cluster `yaml:"clusters"`
@@ -48,7 +51,7 @@ func (d *Deployment) Update() error {
 }
 
 func (d *Deployment) Deploy() (err error) {
-	defer eliteLogout()
+	defer myLogout()
 
 	fmt.Println("Deploying master...")
 	if err = d.Master.Deploy(); err != nil {
@@ -57,7 +60,7 @@ func (d *Deployment) Deploy() (err error) {
 
 	// try to login
 	// also works as a health-check to see if chiwen is ready
-	eliteLogin(d.Master.ExternalIP, 5*time.Minute)
+	myLogin(d.Master.ExternalIP, 5*time.Minute)
 
 	var wg sync.WaitGroup
 	wg.Add(len(d.Hosts))
@@ -113,12 +116,17 @@ func (d *Deployment) masterIP() string {
 	return d.Master.ExternalIP
 }
 
-func (d *Deployment) myctlImage() string {
-	return d.Myctl.Image
+func (d *Deployment) registry() string {
+	img := strings.Split(d.Chiwen.Image, "/")
+	return img[0]
 }
 
-func (d *Deployment) myctlWeb() string {
-	return d.Myctl.Web
+func (d *Deployment) chiwenImage() string {
+	return d.Chiwen.Image
+}
+
+func (d *Deployment) webImage() string {
+	return d.Web.Image
 }
 
 func parseDeployment(data []byte) (*Deployment, error) {

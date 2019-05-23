@@ -9,13 +9,13 @@ import (
 var config *Config
 
 type Config struct {
-	Elite   string
+	My      string
 	License string
 }
 
 func NewConfig(baseDIR string) *Config {
 	config := &Config{
-		Elite:   baseDIR + "/scripts/elite",
+		My:      baseDIR + "/scripts/my",
 		License: baseDIR + "/scripts/chiwen-license",
 	}
 

@@ -1,8 +1,10 @@
-myctl:
-  image: 10.10.1.12:5000/myctl:latest
-  web: 10.10.1.12:5000/chiwen-web:master
+chiwen:
+  image: 10.10.1.12:5000/chiwen:latest
   options:
 	- "--combo=LITE"
+
+web:
+  image: 10.10.1.12:5000/chiwen-web:master
 
 inescure-resgitry:
   - 10.10.1.12:5000

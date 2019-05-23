@@ -65,35 +65,29 @@ func (h *Host) Create() error {
 func (h *Host) Deploy() error {
 	const templateContent = `
 {{.ssh}} << 'EOF'
-	docker pull {{.myctl}}
-	docker run \
-		--rm \
-		--net=host \
-		--cap-add=NET_ADMIN \
-		-e MYCTL_IMAGE={{.myctl}} \
-		-e SSH_PORT=${SSH_CLIENT##* } \
-		-e SSH_USER=$(id -un) \
-		-e SSH_USER_HOME=$HOME \
-		-w /rootfs/$(pwd) \
-		-v /var/run/docker.sock:/var/run/docker.sock \
-		-v /:/rootfs \
-		-v chiwen.config:/etc/chiwen \
-		{{.myctl}} deploy \
+	docker pull {{.chiwen}}
+	id=$(docker create {{.chiwen}})
+	docker cp $id:/opt/chiwen/bin/my $HOME/
+	$HOME/my \
+		deploy \
 		--host-ip={{.internalIP}} \
 		--domain={{.externalIP}} \
+		--registry={{.registry}} \
 		{{- range .options}}
 		{{.}} \
 		{{- end}}
 		-y
+	docker rm $id
 EOF
 `
 	tmplDeploy, _ := template.New("deploy").Parse(templateContent)
 	var tmplBuffer bytes.Buffer
 	if err := tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
 		"ssh":        h.ssh(),
-		"myctl":      h.deployment.myctlImage(),
+		"chiwen":     h.deployment.chiwenImage(),
 		"internalIP": h.InternalIP,
 		"externalIP": h.ExternalIP,
+		"registry":   h.deployment.registry(),
 		"options":    h.options,
 	}); err != nil {
 		return err
@@ -101,7 +95,7 @@ EOF
 
 	Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
 
-	if web := h.deployment.myctlWeb(); web != "" {
+	if web := h.deployment.webImage(); web != "" {
 		const webTemplate = `
 {{.ssh}} << 'EOF'
 	docker pull {{.web}}
@@ -114,7 +108,7 @@ EOF
 		var webBuffer bytes.Buffer
 		if err := tmplWeb.Execute(&webBuffer, &map[string]interface{}{
 			"ssh": h.ssh(),
-			"web": h.deployment.myctlWeb(),
+			"web": web,
 		}); err != nil {
 			return err
 		}
@@ -140,10 +134,6 @@ func (h *Host) image() string {
 	return fmt.Sprintf("%s-%s.qcow2", h.OS, h.Docker)
 }
 
-// func (h *Host) qcow2() string {
-// 	return fmt.Sprintf("%s/%s.qcow2", config.DirQcow2, h.Name)
-// }
-
 func (h *Host) scp(src, dst string) string {
 	// return fmt.Sprintf("scp -o StrictHostKeyChecking=no %s %s", src, dst)
 	return fmt.Sprintf("%s scp -r %s %s", DM, src, dst)
@@ -164,7 +154,7 @@ EOF
 `
 
 func (h *Host) Join() error {
-	cmd, _ := elite("host", "deploy-script", "-q")
+	cmd, _ := my("host", "deploy-script", "-q")
 	var buf bytes.Buffer
 	tmpl, _ := template.New("ssh").Parse(sshTemplate)
 	if err := tmpl.Execute(&buf, &map[string]interface{}{
