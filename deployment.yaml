@@ -6,39 +6,30 @@ chiwen:
 web:
   image: 10.10.1.12:5000/chiwen-web:master
 
-inescure-resgitry:
-  - 10.10.1.12:5000
-  - 10.10.1.13:5000
-  - 10.10.1.14:5000
+insecure_registry:
+- 10.10.1.12:5000
 
 master:
   name: devops160
   external_ip: 10.10.1.160
   internal_ip: 172.16.88.160
-  os: ubuntu16.04
-  docker: docker17.12.1
+  insecure_registry:
+  - 10.10.1.160
+  - 10.10.1.160:5000
 
 hosts:
 - name: devops161
   external_ip: 10.10.1.161
-	internal_ip: 172.16.88.161
-	os: ubuntu16.04
-	docker: docker17.12.1
+  internal_ip: 172.16.88.161
 - name: devops162
   external_ip: 10.10.1.162
-	internal_ip: 172.16.88.162
-	os: ubuntu16.04
-	docker: docker17.12.1
+  internal_ip: 172.16.88.162
 - name: devops163
   external_ip: 10.10.1.163
-	internal_ip: 172.16.88.163
-	os: centos7
-	docker: docker17.12.1
+  internal_ip: 172.16.88.163
 - name: devops164
   external_ip: 10.10.1.164
-	internal_ip: 172.16.88.164
-	os: centos7
-	docker: docker17.12.1
+  internal_ip: 172.16.88.164
 
 clusters:
 - name: red

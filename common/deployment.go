@@ -18,10 +18,10 @@ type Deployment struct {
 	Web struct {
 		Image string `yaml:"image"`
 	} `yaml:"web"`
-	Master             *Host      `yaml:"master"`
-	Hosts              []*Host    `yaml:"hosts"`
-	Clusters           []*Cluster `yaml:"clusters"`
-	InsecureRegistries []string   `yaml:"insecure-registry"`
+	Master           *Host      `yaml:"master"`
+	Hosts            []*Host    `yaml:"hosts"`
+	Clusters         []*Cluster `yaml:"clusters"`
+	InsecureRegistry []string   `yaml:"insecure_registry"`
 }
 
 func (d *Deployment) Create() error {

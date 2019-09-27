@@ -12,14 +12,15 @@ import (
 const DM = "docker-machine"
 
 type Host struct {
-	Name       string  `yaml:"name"`
-	ExternalIP string  `yaml:"external_ip"`
-	InternalIP string  `yaml:"internal_ip"`
-	OS         string  `yaml:"os"`
-	Docker     string  `yaml:"docker"`
-	CPU        *string `yaml:"cpu,omitempty"`
-	Memory     *string `yaml:"mem,omitempty"`
-	Disk       *string `yaml:"disk,omitempty"`
+	Name             string   `yaml:"name"`
+	ExternalIP       string   `yaml:"external_ip"`
+	InternalIP       string   `yaml:"internal_ip"`
+	OS               string   `yaml:"os"`
+	Docker           string   `yaml:"docker"`
+	CPU              *string  `yaml:"cpu,omitempty"`
+	Memory           *string  `yaml:"mem,omitempty"`
+	Disk             *string  `yaml:"disk,omitempty"`
+	InsecureRegistry []string `yaml:"insecure_registry"`
 	//  Chiwen
 	Role string `yaml:"role"`
 
@@ -38,8 +39,12 @@ func (h *Host) createArgs() (args []string) {
 		args = append(args, "--my-memory", *h.Memory)
 	}
 
-	for _, ir := range h.deployment.InsecureRegistries {
-		args = append(args, "--engine-insecure-registry", ir)
+	for _, ir := range h.deployment.InsecureRegistry {
+		args = append(args, "--my-insecure-registry", ir)
+	}
+
+	for _, ir := range h.InsecureRegistry {
+		args = append(args, "--my-insecure-registry", ir)
 	}
 
 	args = append(args, h.Name)
@@ -48,7 +53,7 @@ func (h *Host) createArgs() (args []string) {
 
 func (h *Host) Create() error {
 	fmt.Printf("Creating %s...\n", h.Name)
-	// docker-machine create -d my --my-ip 10.10.1.195 --engine-insecure-registry 10.10.1.195:5000 luke195
+	// docker-machine create -d my --my-ip 10.10.1.195 --my-insecure-registry 10.10.1.195:5000 luke195
 	_, stderr := Output(exec.Command(DM, h.createArgs()...))
 	if stderr != "" {
 		if strings.Contains(stderr, "already exists") {

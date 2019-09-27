@@ -60,13 +60,6 @@ func main() {
 	destroyCmd.Flags().StringP("file", "f", "", "Specify the file path")
 	destroyCmd.Flags().Bool("force", false, "force destroying machines")
 
-	exampleCmd := &cobra.Command{
-		Use:   "example",
-		Short: "print out an example of a yaml file",
-		Long:  "print out an example of a yaml file",
-		Run:   runExample,
-	}
-
 	listCmd := &cobra.Command{
 		Use:   "list",
 		Short: "list nodes",
@@ -93,7 +86,6 @@ func main() {
 	RootCmd.AddCommand(applyCmd)
 	RootCmd.AddCommand(createCmd)
 	RootCmd.AddCommand(deployCmd)
-	RootCmd.AddCommand(exampleCmd)
 	RootCmd.AddCommand(listCmd)
 	RootCmd.AddCommand(destroyCmd)
 	RootCmd.AddCommand(updateCmd)
@@ -229,73 +221,6 @@ func runList(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
-}
-
-func runExample(cmd *cobra.Command, args []string) {
-	const example = `
-chiwen:
-  image: 10.10.1.12:5000/chiwen:master
-  options:
-	- "--combo=LITE"
-
-web:
-	image: 10.10.1.12:5000/chiwen-web:master
-
-inescure-resgitry:
-- 10.10.1.12:5000
-- 10.10.1.13:5000
-- 10.10.1.14:5000
-
-master:
-  name: devops160
-  external_ip: 10.10.1.160
-  internal_ip: 172.16.88.160
-  os: ubuntu16.04
-  docker: docker17.12.1
-  
-hosts:
-- name: devops161
-  external_ip: 10.10.1.161
-  internal_ip: 172.16.88.161
-  os: ubuntu16.04
-  docker: docker17.12.1
-- name: devops162
-  external_ip: 10.10.1.162
-  internal_ip: 172.16.88.162
-  os: ubuntu16.04
-  docker: docker17.12.1
-- name: devops163
-  external_ip: 10.10.1.163
-  internal_ip: 172.16.88.163
-  os: centos7
-  docker: docker17.12.1
-- name: devops164
-  external_ip: 10.10.1.164
-  internal_ip: 172.16.88.164
-  os: centos7
-  docker: docker17.12.1
-  
-clusters:
-- name: red
-  kind: swarm
-  nodes:
-  - name: devops161
-    role: leader
-  - name: devops162
-    role: worker
-- name: blue
-  kind: kubernetes
-  parameters:
-    network: flannel
-    elastic: on
-  nodes:
-  - name: devops164
-    role: leader
-  - name: devops165
-    role: worker
-`
-
-	fmt.Println(example)
 }
 
 func runParse(cmd *cobra.Command, args []string) error {
