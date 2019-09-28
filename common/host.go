@@ -25,7 +25,6 @@ type Host struct {
 	Role string `yaml:"role"`
 
 	deployment *Deployment
-	options    []string
 }
 
 func (h *Host) createArgs() (args []string) {
@@ -93,7 +92,7 @@ EOF
 		"internalIP": h.InternalIP,
 		"externalIP": h.ExternalIP,
 		"registry":   h.deployment.registry(),
-		"options":    h.options,
+		"options":    h.deployment.Chiwen.Options,
 	}); err != nil {
 		return err
 	}

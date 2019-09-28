@@ -51,11 +51,22 @@ func main() {
 	}
 	deployCmd.Flags().StringP("file", "f", "", "Specify the file path")
 
+	deleteCmd := &cobra.Command{
+		Use:   "delete",
+		Short: "delete nodes defined by yaml file",
+		Long:  "delete nodes defined by yaml file",
+		RunE:  runDelete,
+	}
+	deleteCmd.Flags().StringP("file", "f", "", "Specify the file path")
+	deleteCmd.Flags().Bool("force", false, "force deleting machines")
+
+	// deprecated, use delete instead
 	destroyCmd := &cobra.Command{
-		Use:   "destroy",
-		Short: "destroy nodes defined by yaml file",
-		Long:  "destroy nodes defined by yaml file",
-		RunE:  runDestroy,
+		Use:    "destroy",
+		Short:  "destroy nodes defined by yaml file (deprecated)",
+		Long:   "destroy nodes defined by yaml file (deprecated)",
+		Hidden: true,
+		RunE:   runDelete,
 	}
 	destroyCmd.Flags().StringP("file", "f", "", "Specify the file path")
 	destroyCmd.Flags().Bool("force", false, "force destroying machines")
@@ -87,10 +98,9 @@ func main() {
 	RootCmd.AddCommand(createCmd)
 	RootCmd.AddCommand(deployCmd)
 	RootCmd.AddCommand(listCmd)
+	RootCmd.AddCommand(deleteCmd)
 	RootCmd.AddCommand(destroyCmd)
 	RootCmd.AddCommand(updateCmd)
-
-	// back door
 	RootCmd.AddCommand(parseCmd)
 
 	if err := RootCmd.Execute(); err != nil {
@@ -161,7 +171,7 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 	return deploy.Deploy()
 }
 
-func runDestroy(cmd *cobra.Command, args []string) error {
+func runDelete(cmd *cobra.Command, args []string) error {
 	path, err := cmd.Flags().GetString("file")
 	if err != nil {
 		return err
