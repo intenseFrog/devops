@@ -1,14 +1,15 @@
-package common
+package pkg
 
 import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -41,7 +42,7 @@ func Destroy(names []string, yes bool) {
 	for _, name := range names {
 		h := &Host{Name: name}
 		if err := h.Destroy(); err != nil {
-			fmt.Println(err.Error())
+			log.Debug(err.Error())
 		}
 	}
 }
@@ -83,6 +84,12 @@ func output(r io.Reader, output chan<- string, done chan<- bool) {
 		output <- scanner.Text()
 	}
 	done <- true
+}
+
+func Exec(name string, args ...string) *exec.Cmd {
+	cmds := append([]string{name}, args...)
+	log.Debug(strings.Join(cmds, " "))
+	return exec.Command(name, args...)
 }
 
 // CmdOutput: gives stdout, stderr, error

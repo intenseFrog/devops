@@ -1,12 +1,13 @@
-package common
+package pkg
 
 import (
 	"bytes"
 	"errors"
 	"fmt"
-	"os/exec"
 	"strings"
 	"text/template"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const DM = "docker-machine"
@@ -51,9 +52,9 @@ func (h *Host) createArgs() (args []string) {
 }
 
 func (h *Host) Create() error {
-	fmt.Printf("Creating %s...\n", h.Name)
+	log.Debugf("Creating %s...", h.Name)
 	// docker-machine create -d my --my-ip 10.10.1.195 --my-insecure-registry 10.10.1.195:5000 luke195
-	_, stderr := Output(exec.Command(DM, h.createArgs()...))
+	_, stderr := Output(Exec(DM, h.createArgs()...))
 	if stderr != "" {
 		if strings.Contains(stderr, "already exists") {
 			return nil
@@ -84,9 +85,9 @@ func (h *Host) Deploy() error {
 	docker rm $id
 EOF
 `
-	tmplDeploy, _ := template.New("deploy").Parse(templateContent)
-	var tmplBuffer bytes.Buffer
-	if err := tmplDeploy.Execute(&tmplBuffer, &map[string]interface{}{
+	tmpl, _ := template.New("deploy").Parse(templateContent)
+	var b bytes.Buffer
+	if err := tmpl.Execute(&b, &map[string]interface{}{
 		"ssh":        h.ssh(),
 		"chiwen":     h.deployment.chiwenImage(),
 		"internalIP": h.InternalIP,
@@ -97,7 +98,7 @@ EOF
 		return err
 	}
 
-	Output(exec.Command("/bin/bash", "-c", tmplBuffer.String()))
+	Output(Exec("/bin/bash", "-c", b.String()))
 
 	if web := h.deployment.webImage(); web != "" {
 		const webTemplate = `
@@ -117,20 +118,20 @@ EOF
 			return err
 		}
 
-		Output(exec.Command("/bin/bash", "-c", webBuffer.String()))
+		Output(Exec("/bin/bash", "-c", webBuffer.String()))
 	}
 
 	return nil
 }
 
 func (h *Host) Destroy() error {
-	fmt.Printf("Destroying %s...\n", h.Name)
-	Output(exec.Command(DM, "rm", "-y", h.Name))
+	log.Debugf("Destroying %s...", h.Name)
+	Output(Exec(DM, "rm", "-y", h.Name))
 	return nil
 }
 
 func (h *Host) Exist() bool {
-	stdout, _ := Output(exec.Command(DM, "ls", "--filter", fmt.Sprintf("name=%s", h.Name), "-q"))
+	stdout, _ := Output(Exec(DM, "ls", "--filter", fmt.Sprintf("name=%s", h.Name), "-q"))
 	return h.Name == stdout
 }
 
@@ -168,6 +169,6 @@ func (h *Host) Join() error {
 		return err
 	}
 
-	Output(exec.Command("/bin/bash", "-c", buf.String()))
+	Output(Exec("/bin/bash", "-c", buf.String()))
 	return nil
 }

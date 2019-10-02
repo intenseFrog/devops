@@ -1,8 +1,6 @@
-package common
+package pkg
 
 import (
-	"fmt"
-	"os/exec"
 	"strings"
 	"time"
 )
@@ -25,8 +23,7 @@ func (e *MyArguments) Append(output bool, args ...string) {
 }
 
 func my(args ...string) (string, string) {
-	fmt.Printf("%s %s\n", config.My, strings.Join(args, " "))
-	return Output(exec.Command(config.My, args...))
+	return Output(Exec(config.My, args...))
 }
 
 // FIXME: supposed to evaluate my stderr

@@ -1,12 +1,12 @@
-package common
+package pkg
 
 import (
-	"fmt"
 	"io/ioutil"
 	"strings"
 	"sync"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -33,7 +33,6 @@ func (d *Deployment) Create() error {
 		go func(h *Host) {
 			defer wg.Done()
 			if !h.Exist() {
-				fmt.Println(h.Name)
 				if err := h.Create(); err != nil {
 					panic(err)
 				}
@@ -46,25 +45,24 @@ func (d *Deployment) Create() error {
 }
 
 func (d *Deployment) Update() error {
-	fmt.Println("Updating master...")
+	log.Debug("Updating master...")
 	return d.Master.Deploy()
 }
 
 func (d *Deployment) Deploy() (err error) {
 	defer myLogout()
 
-	fmt.Println("Deploying master...")
+	log.Debug("Deploying master...")
 	if err = d.Master.Deploy(); err != nil {
 		return err
 	}
 
-	// try to login
-	// also works as a health-check to see if chiwen is ready
+	// try to login, also works as a health-check to see if chiwen is ready
 	myLogin(d.Master.ExternalIP, 5*time.Minute)
 
 	var wg sync.WaitGroup
 	wg.Add(len(d.Hosts))
-	fmt.Println("Joining hosts...")
+	log.Debug("Joining hosts...")
 	for i := range d.Hosts {
 		h := d.Hosts[i]
 		go func() {
@@ -76,7 +74,7 @@ func (d *Deployment) Deploy() (err error) {
 	}
 	wg.Wait()
 
-	fmt.Println("Deploying clusters...")
+	log.Debug("Deploying clusters...")
 	wg.Add(len(d.Clusters))
 	for i := range d.Clusters {
 		c := d.Clusters[i]
