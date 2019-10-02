@@ -10,10 +10,9 @@ import (
 
 func init() {
 	deployCmd := &cobra.Command{
-		Use:   "deploy",
-		Short: "create and deploy a cluster",
-		Long:  "create and deploy a cluster",
-		RunE:  runDeploy,
+		Use:  "deploy",
+		Long: "deploy miaoyun",
+		RunE: runDeploy,
 	}
 	deployCmd.Flags().StringP("file", "f", "", "Specify the file path")
 

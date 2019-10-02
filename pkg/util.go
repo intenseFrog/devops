@@ -41,7 +41,7 @@ func Destroy(names []string, yes bool) {
 
 	for _, name := range names {
 		h := &Host{Name: name}
-		if err := h.Destroy(); err != nil {
+		if err := h.Delete(); err != nil {
 			log.Debug(err.Error())
 		}
 	}

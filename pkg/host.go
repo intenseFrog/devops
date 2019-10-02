@@ -124,8 +124,8 @@ EOF
 	return nil
 }
 
-func (h *Host) Destroy() error {
-	log.Debugf("Destroying %s...", h.Name)
+func (h *Host) Delete() error {
+	log.Debugf("Deleting %s...", h.Name)
 	Output(Exec(DM, "rm", "-y", h.Name))
 	return nil
 }
@@ -152,13 +152,12 @@ func (h *Host) userAtHost() string {
 	return "root@" + h.Name
 }
 
-const sshTemplate = `
+func (h *Host) Join() error {
+	const sshTemplate = `
 {{ .SSH }} << 'EOF'
 	{{ .Command }}
 EOF
 `
-
-func (h *Host) Join() error {
 	cmd, _ := my("host", "deploy-script", "-q")
 	var buf bytes.Buffer
 	tmpl, _ := template.New("ssh").Parse(sshTemplate)

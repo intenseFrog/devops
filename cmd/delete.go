@@ -43,7 +43,7 @@ func runDelete(cmd *cobra.Command, args []string) error {
 	msg := fmt.Sprintf("About to remove %s", strings.Join(names, ", "))
 
 	if force || pkg.Confirm(msg) {
-		deploy.Destroy()
+		deploy.Delete()
 	}
 
 	return nil

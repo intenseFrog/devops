@@ -35,7 +35,7 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	}
 
 	if force, _ := cmd.Flags().GetBool("force"); force {
-		deploy.Destroy()
+		deploy.Delete()
 	}
 
 	return deploy.Create()

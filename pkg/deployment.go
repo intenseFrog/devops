@@ -44,21 +44,15 @@ func (d *Deployment) Create() error {
 	return nil
 }
 
-func (d *Deployment) Update() error {
-	log.Debug("Updating master...")
-	return d.Master.Deploy()
-}
-
-func (d *Deployment) Deploy() (err error) {
-	defer myLogout()
-
+func (d *Deployment) Deploy() error {
 	log.Debug("Deploying master...")
-	if err = d.Master.Deploy(); err != nil {
+	if err := d.Master.Deploy(); err != nil {
 		return err
 	}
 
 	// try to login, also works as a health-check to see if chiwen is ready
 	myLogin(d.Master.ExternalIP, 5*time.Minute)
+	defer myLogout()
 
 	var wg sync.WaitGroup
 	wg.Add(len(d.Hosts))
@@ -67,7 +61,7 @@ func (d *Deployment) Deploy() (err error) {
 		h := d.Hosts[i]
 		go func() {
 			defer wg.Done()
-			if err = h.Join(); err != nil {
+			if err := h.Join(); err != nil {
 				panic(err)
 			}
 		}()
@@ -85,17 +79,19 @@ func (d *Deployment) Deploy() (err error) {
 	}
 	wg.Wait()
 
-	return
+	return nil
 }
 
-func (d *Deployment) Destroy() {
+func (d *Deployment) Delete() {
 	var wg sync.WaitGroup
 	wg.Add(len(d.ListHosts()))
 
 	for _, h := range d.ListHosts() {
 		go func(h *Host) {
 			defer wg.Done()
-			h.Destroy()
+			if err := h.Delete(); err != nil {
+				log.Debug(err.Error())
+			}
 		}(h)
 	}
 
