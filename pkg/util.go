@@ -50,6 +50,7 @@ func Destroy(names []string, yes bool) {
 }
 
 func FileLock(file string) (*flock.Flock, error) {
+	log.Debugf("try to acquire lock of file %s", file)
 	lock := flock.New(file)
 	_, err := lock.TryLockContext(context.Background(), 5*time.Second)
 	return lock, err
