@@ -42,6 +42,12 @@ func runDelete(cmd *cobra.Command, args []string) error {
 	force, _ := cmd.Flags().GetBool("force")
 	msg := fmt.Sprintf("About to remove %s", strings.Join(names, ", "))
 
+	lock, err := pkg.FileLock(path)
+	if err != nil {
+		return err
+	}
+	defer lock.Unlock()
+
 	if force || pkg.Confirm(msg) {
 		deploy.Delete()
 	}

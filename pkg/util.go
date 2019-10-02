@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gofrs/flock"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -45,6 +47,12 @@ func Destroy(names []string, yes bool) {
 			log.Debug(err.Error())
 		}
 	}
+}
+
+func FileLock(file string) (*flock.Flock, error) {
+	lock := flock.New(file)
+	_, err := lock.TryLockContext(context.Background(), 5*time.Second)
+	return lock, err
 }
 
 func PrettyDuration(d time.Duration) string {

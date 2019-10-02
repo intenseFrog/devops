@@ -39,9 +39,19 @@ func runApply(cmd *cobra.Command, args []string) error {
 		deploy.Delete()
 	}
 
+	lock, err := pkg.FileLock(path)
+	if err != nil {
+		return err
+	}
+	defer lock.Unlock()
+
 	if err = deploy.Create(); err != nil {
 		return err
 	}
 
-	return deploy.Deploy()
+	if err = deploy.Deploy(); err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -1,9 +1,10 @@
 package pkg
 
 import (
-	"log"
 	"os"
 	"path/filepath"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var config *Config

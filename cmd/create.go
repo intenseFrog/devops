@@ -38,5 +38,15 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		deploy.Delete()
 	}
 
-	return deploy.Create()
+	lock, err := pkg.FileLock(path)
+	if err != nil {
+		return err
+	}
+	defer lock.Unlock()
+
+	if err = deploy.Create(); err != nil {
+		return err
+	}
+
+	return nil
 }
