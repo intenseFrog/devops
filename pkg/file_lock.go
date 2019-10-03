@@ -10,27 +10,29 @@ import (
 
 // a simple implementation of file-lock between process, race condtion may occur but it's good enough for our purpose
 type FileLock struct {
-	path string
+	path    string
+	timeout time.Duration
 }
 
-func NewFileLock(path string) FileLock {
-	return FileLock{
-		path: path,
+func NewFileLock(path string, timeout time.Duration) *FileLock {
+	return &FileLock{
+		path:    path,
+		timeout: timeout,
 	}
 }
 
-func (f FileLock) TryLock(timeout time.Duration) error {
+func (f *FileLock) Lock() error {
 	lockname := f.lockName()
 	log.Debugf("acquiring file lock %s", lockname)
-	start := time.Now()
+	expire := time.Now().Add(f.timeout)
 	for {
-		if start.Add(timeout).Before(time.Now()) {
-			return fmt.Errorf("unable to acquire file lock %s after timemout of %s, resolve this by manully removing %s", lockname, PrettyDuration(timeout), lockname)
-		}
-
-		if f.Lock() {
+		if f.lock() {
 			log.Debugf("file lock %s aquired", lockname)
 			return nil
+		}
+
+		if time.Now().After(expire) {
+			return fmt.Errorf("unable to acquire file lock %s after timemout of %s, wait till other process finsh working on %s or resolve this by manully removing %s", lockname, PrettyDuration(f.timeout), f.path, lockname)
 		}
 
 		time.Sleep(1 * time.Second)
@@ -38,7 +40,7 @@ func (f FileLock) TryLock(timeout time.Duration) error {
 }
 
 // there can be a race condition, but it's good enough for CI/CD scenario
-func (f FileLock) Lock() bool {
+func (f *FileLock) lock() bool {
 	l := f.lockName()
 	if _, err := os.Stat(l); err != nil {
 		if !os.IsNotExist(err) {
@@ -58,7 +60,7 @@ func (f FileLock) Lock() bool {
 	return false
 }
 
-func (f FileLock) Unlock() {
+func (f *FileLock) Unlock() {
 	l := f.lockName()
 	log.Debugf("release file lock %s", l)
 	if err := os.Remove(l); err != nil {
@@ -66,6 +68,6 @@ func (f FileLock) Unlock() {
 	}
 }
 
-func (f FileLock) lockName() string {
+func (f *FileLock) lockName() string {
 	return f.path + ".lock"
 }

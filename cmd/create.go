@@ -14,9 +14,8 @@ func init() {
 		Long: "Create a number of hosts",
 		RunE: runCreate,
 	}
-	createCmd.Flags().Bool("force", false, "recreate existing hosts")
-	createCmd.Flags().StringP("file", "f", "", "Specify the file path")
 
+	setFileFlags(createCmd.Flags())
 	RootCmd.AddCommand(createCmd)
 }
 
@@ -24,7 +23,8 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	start := time.Now()
 	defer pkg.PrintDone(start)
 
-	path, err := cmd.Flags().GetString("file")
+	flags := cmd.Flags()
+	path, err := flags.GetString("file")
 	if err != nil {
 		return err
 	}
@@ -34,13 +34,26 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fl := pkg.NewFileLock(path)
-	if err := fl.TryLock(1 * time.Hour); err != nil {
-		return err
-	}
-	defer fl.Unlock()
+	if lock, _ := flags.GetBool("lock"); lock {
+		timeout, err := flags.GetString("lock-timeout")
+		if err != nil {
+			return err
+		}
 
-	if force, _ := cmd.Flags().GetBool("force"); force {
+		d, err := parseDuration(timeout)
+		if err != nil {
+			return err
+		}
+
+		fl := pkg.NewFileLock(path, d)
+		if err := fl.Lock(); err != nil {
+			return err
+		}
+
+		defer fl.Unlock()
+	}
+
+	if force, _ := flags.GetBool("force"); force {
 		deploy.Delete()
 	}
 

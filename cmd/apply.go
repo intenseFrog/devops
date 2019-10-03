@@ -14,9 +14,8 @@ func init() {
 		Short: "Create hosts and deploy miaoyun",
 		RunE:  runApply,
 	}
-	applyCmd.Flags().Bool("force", false, "destroy previous machines")
-	applyCmd.Flags().StringP("file", "f", "", "Specify the file path")
 
+	setFileFlags(applyCmd.Flags())
 	RootCmd.AddCommand(applyCmd)
 }
 
@@ -24,7 +23,8 @@ func runApply(cmd *cobra.Command, args []string) error {
 	start := time.Now()
 	defer pkg.PrintDone(start)
 
-	path, err := cmd.Flags().GetString("file")
+	flags := cmd.Flags()
+	path, err := flags.GetString("file")
 	if err != nil {
 		return err
 	}
@@ -34,13 +34,26 @@ func runApply(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fl := pkg.NewFileLock(path)
-	if err := fl.TryLock(1 * time.Hour); err != nil {
-		return err
-	}
-	defer fl.Unlock()
+	if lock, _ := flags.GetBool("lock"); lock {
+		timeout, err := flags.GetString("lock-timeout")
+		if err != nil {
+			return err
+		}
 
-	if force, _ := cmd.Flags().GetBool("force"); force {
+		d, err := parseDuration(timeout)
+		if err != nil {
+			return err
+		}
+
+		fl := pkg.NewFileLock(path, d)
+		if err := fl.Lock(); err != nil {
+			return err
+		}
+
+		defer fl.Unlock()
+	}
+
+	if force, _ := flags.GetBool("force"); force {
 		deploy.Delete()
 	}
 
