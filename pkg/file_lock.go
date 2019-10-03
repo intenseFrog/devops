@@ -42,7 +42,7 @@ func (f *fileLockImplementation) Lock() error {
 		}
 
 		if time.Now().After(expire) {
-			return fmt.Errorf("unable to acquire file lock %s after timemout of %s, wait till other process finsh working on %s or resolve this by manully removing %s", l, PrettyDuration(f.timeout), f.path, l)
+			return fmt.Errorf("unable to acquire file lock %s after timemout of %s, wait till other process finish working on %s or resolve this by manully removing %s", l, PrettyDuration(f.timeout), f.path, l)
 		}
 
 		time.Sleep(1 * time.Second)
