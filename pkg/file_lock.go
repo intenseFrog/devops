@@ -31,18 +31,18 @@ func newFileLockImplementation(path string, timeout time.Duration) *fileLockImpl
 }
 
 func (f *fileLockImplementation) Lock() error {
-	lockname := f.lockName()
-	log.Debugf("acquiring file lock %s", lockname)
+	l := f.lockName()
+	log.Debugf("acquiring file lock %s", l)
 	expire := time.Now().Add(f.timeout)
 	for {
 		// try to acquire lock at least once
 		if f.lock() {
-			log.Debugf("file lock %s aquired", lockname)
+			log.Debugf("file lock %s aquired", l)
 			return nil
 		}
 
 		if time.Now().After(expire) {
-			return fmt.Errorf("unable to acquire file lock %s after timemout of %s, wait till other process finsh working on %s or resolve this by manully removing %s", lockname, PrettyDuration(f.timeout), f.path, lockname)
+			return fmt.Errorf("unable to acquire file lock %s after timemout of %s, wait till other process finsh working on %s or resolve this by manully removing %s", l, PrettyDuration(f.timeout), f.path, l)
 		}
 
 		time.Sleep(1 * time.Second)
