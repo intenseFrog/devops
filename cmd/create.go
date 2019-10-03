@@ -10,9 +10,9 @@ import (
 
 func init() {
 	createCmd := &cobra.Command{
-		Use:  "create",
-		Long: "Create a number of hosts",
-		RunE: runCreate,
+		Use:   "create",
+		Short: "Create hosts",
+		RunE:  runCreate,
 	}
 
 	setFileFlags(createCmd.Flags())

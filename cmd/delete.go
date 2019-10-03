@@ -14,7 +14,7 @@ func init() {
 	deleteCmd := &cobra.Command{
 		Use:     "delete",
 		Aliases: []string{"destroy", "remove", "rm"},
-		Short:   "Delete hosts defined by yaml file",
+		Short:   "Delete hosts",
 		RunE:    runDelete,
 	}
 
