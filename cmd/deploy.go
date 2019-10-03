@@ -10,9 +10,9 @@ import (
 
 func init() {
 	deployCmd := &cobra.Command{
-		Use:  "deploy",
-		Long: "deploy miaoyun",
-		RunE: runDeploy,
+		Use:   "deploy",
+		Short: "Deploy miaoyun",
+		RunE:  runDeploy,
 	}
 	deployCmd.Flags().StringP("file", "f", "", "Specify the file path")
 
@@ -32,12 +32,6 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-
-	lock, err := pkg.FileLock(path)
-	if err != nil {
-		return err
-	}
-	defer lock.Unlock()
 
 	if err = deploy.Deploy(); err != nil {
 		return err

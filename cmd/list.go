@@ -12,7 +12,7 @@ func init() {
 	listCmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
-		Long:    "list nodes",
+		Long:    "List hosts",
 		RunE:    runList,
 	}
 	listCmd.Flags().BoolP("quiet", "q", false, "List names only")

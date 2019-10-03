@@ -11,8 +11,7 @@ import (
 func init() {
 	applyCmd := &cobra.Command{
 		Use:   "apply",
-		Short: "create machines and deploy miaoyun",
-		Long:  "create machines and deploy miaoyun",
+		Short: "Create hosts and deploy miaoyun",
 		RunE:  runApply,
 	}
 	applyCmd.Flags().Bool("force", false, "destroy previous machines")
@@ -38,12 +37,6 @@ func runApply(cmd *cobra.Command, args []string) error {
 	if force, _ := cmd.Flags().GetBool("force"); force {
 		deploy.Delete()
 	}
-
-	lock, err := pkg.FileLock(path)
-	if err != nil {
-		return err
-	}
-	defer lock.Unlock()
 
 	if err = deploy.Create(); err != nil {
 		return err

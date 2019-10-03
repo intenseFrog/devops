@@ -15,7 +15,7 @@ type Cluster struct {
 	deployment *Deployment
 }
 
-func (c *Cluster) Deploy() {
+func (c *Cluster) Deploy() error {
 	// create cluster first
 	createArgs := []string{"cluster", "create", c.Name, "--" + c.Kind}
 	for k, v := range c.Params {
@@ -28,10 +28,12 @@ func (c *Cluster) Deploy() {
 	for _, n := range c.Nodes {
 		id, ok := hostDict[n.Name]
 		if !ok {
-			panic(fmt.Errorf("cannot find host %s", n.Name))
+			return fmt.Errorf("cannot find host %s", n.Name)
 		}
 		n.Join(id)
 	}
+
+	return nil
 }
 
 // parse host out to the format of Name->ID

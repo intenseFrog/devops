@@ -11,10 +11,10 @@ import (
 func init() {
 	createCmd := &cobra.Command{
 		Use:  "create",
-		Long: "create a number of machines",
+		Long: "Create a number of hosts",
 		RunE: runCreate,
 	}
-	createCmd.Flags().Bool("force", false, "recreate existing machines")
+	createCmd.Flags().Bool("force", false, "recreate existing hosts")
 	createCmd.Flags().StringP("file", "f", "", "Specify the file path")
 
 	RootCmd.AddCommand(createCmd)
@@ -37,12 +37,6 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	if force, _ := cmd.Flags().GetBool("force"); force {
 		deploy.Delete()
 	}
-
-	lock, err := pkg.FileLock(path)
-	if err != nil {
-		return err
-	}
-	defer lock.Unlock()
 
 	if err = deploy.Create(); err != nil {
 		return err

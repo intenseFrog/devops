@@ -25,21 +25,23 @@ type Deployment struct {
 }
 
 func (d *Deployment) Create() error {
-	var wg sync.WaitGroup
 	hosts := d.ListHosts()
-	wg.Add(len(hosts))
-
+	errChan := make(chan error, len(hosts))
 	for _, h := range hosts {
 		go func(h *Host) {
-			defer wg.Done()
 			if !h.Exist() {
-				if err := h.Create(); err != nil {
-					panic(err)
-				}
+				errChan <- h.Create()
+			} else {
+				errChan <- nil
 			}
 		}(h)
 	}
-	wg.Wait()
+
+	for i := 0; i < len(hosts); i++ {
+		if err := <-errChan; err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -54,30 +56,49 @@ func (d *Deployment) Deploy() error {
 	myLogin(d.Master.ExternalIP, 5*time.Minute)
 	defer myLogout()
 
-	var wg sync.WaitGroup
-	wg.Add(len(d.Hosts))
+	if err := d.joinHosts(); err != nil {
+		return err
+	}
+
+	return d.deployClusters()
+}
+
+func (d *Deployment) joinHosts() error {
 	log.Debug("Joining hosts...")
+
+	errChan := make(chan error, len(d.Hosts))
 	for i := range d.Hosts {
 		h := d.Hosts[i]
 		go func() {
-			defer wg.Done()
-			if err := h.Join(); err != nil {
-				panic(err)
-			}
+			errChan <- h.Join()
 		}()
 	}
-	wg.Wait()
 
+	for i := 0; i < len(d.Hosts); i++ {
+		if err := <-errChan; err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (d *Deployment) deployClusters() error {
 	log.Debug("Deploying clusters...")
-	wg.Add(len(d.Clusters))
+
+	errChan := make(chan error, len(d.Hosts))
 	for i := range d.Clusters {
 		c := d.Clusters[i]
 		go func() {
-			defer wg.Done()
-			c.Deploy()
+			errChan <- c.Deploy()
 		}()
 	}
-	wg.Wait()
+
+	for i := 0; i < len(d.Clusters); i++ {
+		if err := <-errChan; err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
