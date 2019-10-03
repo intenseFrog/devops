@@ -47,7 +47,7 @@ func (d *Deployment) Create() error {
 }
 
 func (d *Deployment) Deploy() error {
-	log.Debug("Deploying master...")
+	log.Info("Deploying master...")
 	if err := d.Master.Deploy(); err != nil {
 		return err
 	}
@@ -64,7 +64,7 @@ func (d *Deployment) Deploy() error {
 }
 
 func (d *Deployment) joinHosts() error {
-	log.Debug("Joining hosts...")
+	log.Info("Joining hosts...")
 
 	errChan := make(chan error, len(d.Hosts))
 	for i := range d.Hosts {
@@ -84,7 +84,7 @@ func (d *Deployment) joinHosts() error {
 }
 
 func (d *Deployment) deployClusters() error {
-	log.Debug("Deploying clusters...")
+	log.Info("Deploying clusters...")
 
 	errChan := make(chan error, len(d.Hosts))
 	for i := range d.Clusters {

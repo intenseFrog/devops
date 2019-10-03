@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -37,6 +38,12 @@ func runDelete(cmd *cobra.Command, args []string) error {
 	for _, h := range deploy.ListHosts() {
 		names = append(names, h.Name)
 	}
+
+	fl := pkg.NewFileLock(path)
+	if err := fl.TryLock(1 * time.Hour); err != nil {
+		return err
+	}
+	defer fl.Unlock()
 
 	force, _ := cmd.Flags().GetBool("force")
 	msg := fmt.Sprintf("About to remove %s", strings.Join(names, ", "))

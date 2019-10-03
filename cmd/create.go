@@ -34,13 +34,15 @@ func runCreate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	fl := pkg.NewFileLock(path)
+	if err := fl.TryLock(1 * time.Hour); err != nil {
+		return err
+	}
+	defer fl.Unlock()
+
 	if force, _ := cmd.Flags().GetBool("force"); force {
 		deploy.Delete()
 	}
 
-	if err = deploy.Create(); err != nil {
-		return err
-	}
-
-	return nil
+	return deploy.Create()
 }

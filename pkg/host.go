@@ -52,7 +52,7 @@ func (h *Host) createArgs() (args []string) {
 }
 
 func (h *Host) Create() error {
-	log.Debugf("Creating %s...", h.Name)
+	log.Infof("Creating %s...", h.Name)
 	// docker-machine create -d my --my-ip 10.10.1.195 --my-insecure-registry 10.10.1.195:5000 luke195
 	_, stderr := Output(Exec(DM, h.createArgs()...))
 	if stderr != "" {
@@ -125,7 +125,7 @@ EOF
 }
 
 func (h *Host) Delete() error {
-	log.Debugf("Deleting %s...", h.Name)
+	log.Infof("Deleting %s...", h.Name)
 	Output(Exec(DM, "rm", "-y", h.Name))
 	return nil
 }

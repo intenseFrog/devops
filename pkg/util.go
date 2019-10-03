@@ -25,12 +25,7 @@ func Confirm(msg string) bool {
 
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
-
-	if scanner.Text() == "y" {
-		return true
-	}
-
-	return false
+	return scanner.Text() == "y"
 }
 
 func Destroy(names []string, yes bool) {
