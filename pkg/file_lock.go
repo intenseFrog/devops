@@ -21,7 +21,7 @@ func NewFileLock(path string) FileLock {
 
 func (f FileLock) TryLock(timeout time.Duration) error {
 	lockname := f.lockName()
-	log.Infof("attempt to acquire file lock %s", lockname)
+	log.Debugf("acquiring file lock %s", lockname)
 	start := time.Now()
 	for {
 		if start.Add(timeout).Before(time.Now()) {
@@ -29,6 +29,7 @@ func (f FileLock) TryLock(timeout time.Duration) error {
 		}
 
 		if f.Lock() {
+			log.Debugf("file lock %s aquired", lockname)
 			return nil
 		}
 
@@ -59,7 +60,7 @@ func (f FileLock) Lock() bool {
 
 func (f FileLock) Unlock() {
 	l := f.lockName()
-	log.Infof("release file lock %s", l)
+	log.Debugf("release file lock %s", l)
 	if err := os.Remove(l); err != nil {
 		log.Debugf("err releasing file lock: %s", err.Error())
 	}
