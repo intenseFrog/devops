@@ -14,23 +14,23 @@ type FileLock interface {
 }
 
 func NewFileLock(path string, timeout time.Duration) FileLock {
-	return newFileLockImplementation(path, timeout)
+	return newFileLockImpl(path, timeout)
 }
 
 // a naive implementation of file-lock between process, race condtion may occur but it's good enough for our purpose
-type fileLockImplementation struct {
+type fileLockImpl struct {
 	path    string
 	timeout time.Duration
 }
 
-func newFileLockImplementation(path string, timeout time.Duration) *fileLockImplementation {
-	return &fileLockImplementation{
+func newFileLockImpl(path string, timeout time.Duration) *fileLockImpl {
+	return &fileLockImpl{
 		path:    path,
 		timeout: timeout,
 	}
 }
 
-func (f *fileLockImplementation) Lock() error {
+func (f *fileLockImpl) Lock() error {
 	l := f.lockName()
 	log.Debugf("acquiring file lock %s", l)
 	expire := time.Now().Add(f.timeout)
@@ -50,7 +50,7 @@ func (f *fileLockImplementation) Lock() error {
 }
 
 // there can be a race condition, but it's good enough for CI/CD scenario
-func (f *fileLockImplementation) lock() bool {
+func (f *fileLockImpl) lock() bool {
 	l := f.lockName()
 	if _, err := os.Stat(l); err != nil {
 		if !os.IsNotExist(err) {
@@ -70,7 +70,7 @@ func (f *fileLockImplementation) lock() bool {
 	return false
 }
 
-func (f *fileLockImplementation) Unlock() {
+func (f *fileLockImpl) Unlock() {
 	l := f.lockName()
 	log.Debugf("release file lock %s", l)
 	if err := os.Remove(l); err != nil {
@@ -78,6 +78,6 @@ func (f *fileLockImplementation) Unlock() {
 	}
 }
 
-func (f *fileLockImplementation) lockName() string {
+func (f *fileLockImpl) lockName() string {
 	return f.path + ".lock"
 }
